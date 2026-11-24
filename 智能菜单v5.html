@@ -1,0 +1,2579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>家里有什么就做什么 · 智能菜单 v5</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --ink:#1e2b24; --muted:#6f7b74; --line:#e7ece5; --bg:#f6f7f3;
+  --green:#2f7d5f; --green-d:#1f5c44; --green-l:#eaf5ef;
+  --gold:#d9862f; --gold-l:#fdf3e6; --red:#c9483f; --red-l:#fdeeed;
+  --blue:#3b6f9e; --blue-l:#eef4fa;
+  --r:18px; --shadow:0 10px 30px rgba(30,43,36,.07);
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,"PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1280px;margin:0 auto;padding:0 20px}
+
+/* ============ Hero ============ */
+.hero{
+  position:relative;overflow:hidden;color:#fff;
+  background:linear-gradient(135deg,#10382c 0%,#255f49 48%,#3d8a68 100%);
+  padding:34px 0 40px;
+}
+.hero::before{
+  content:"";position:absolute;inset:0;
+  background:
+    radial-gradient(circle at 88% 18%,rgba(255,255,255,.13),transparent 42%),
+    radial-gradient(circle at 8% 92%,rgba(255,255,255,.08),transparent 40%);
+}
+.hero::after{
+  content:"";position:absolute;right:-40px;bottom:-90px;width:340px;height:340px;
+  border-radius:50%;border:1px solid rgba(255,255,255,.15);
+}
+.hero-in{position:relative;z-index:2}
+.logo-row{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.logo{
+  width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,.16);
+  display:flex;align-items:center;justify-content:center;font-size:24px;
+  backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.22);
+}
+.brand{font-size:17px;font-weight:700;letter-spacing:.5px}
+.brand-sub{font-size:11px;letter-spacing:2.4px;opacity:.62;text-transform:uppercase}
+.hero h1{font-size:clamp(26px,3.4vw,38px);font-weight:800;letter-spacing:.5px;line-height:1.3}
+.hero-desc{margin-top:10px;max-width:640px;font-size:14px;color:rgba(255,255,255,.82)}
+.hero-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.hero-tags span{
+  font-size:12.5px;padding:5px 12px;border-radius:20px;
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18)
+}
+.hero-tags b{font-size:14px;font-weight:700;margin:0 2px}
+
+/* ============ Layout ============ */
+.layout{
+  display:grid;grid-template-columns:minmax(0,405px) minmax(0,1fr);
+  gap:18px;align-items:start;margin:22px auto 56px;
+}
+.card{
+  background:#fff;border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow);
+}
+.picker{padding:18px}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.card-head h2{font-size:16px;font-weight:700}
+.hint{font-size:12px;color:var(--muted);margin-top:3px}
+
+/* ============ 食材分组 ============ */
+.search-inline input{
+  width:170px;padding:7px 12px;border:1px solid var(--line);border-radius:20px;
+  background:#fafbf8;font-size:12.5px;outline:none;transition:.2s
+}
+.search-inline input:focus{border-color:var(--green);background:#fff}
+.groups{margin-bottom:4px}
+.group{border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden;background:#fff}
+.group-head{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:10px 12px;background:#fafbf8;cursor:pointer;user-select:none;
+}
+.group-head .g-name{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.group-head .g-meta{font-size:11.5px;color:var(--muted)}
+.group-head .g-meta b{color:var(--green);font-weight:700}
+.group-head .arrow{font-size:11px;color:var(--muted);transition:.2s}
+.group.closed .arrow{transform:rotate(-90deg)}
+.group.closed .chips{display:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px 12px}
+.chip{
+  font-size:12.5px;padding:4.5px 10px;border-radius:20px;border:1px solid #e2e8de;
+  background:#fff;color:#42504a;transition:.15s;white-space:nowrap;line-height:1.5;
+}
+.chip:hover{border-color:#8dc4a9;color:var(--green-d);background:#f7fcf9}
+.chip.on{background:var(--green);border-color:var(--green);color:#fff;box-shadow:0 4px 12px rgba(47,125,95,.22)}
+.chip.on::before{content:"✓";font-size:10px;margin-right:3px;opacity:.85}
+.chip .d{font-size:10.5px;opacity:.55;margin-left:3px}
+.chip.on .d{opacity:.75}
+
+/* ============ 已选 ============ */
+.selected-bar{
+  margin-top:6px;background:var(--green-l);border-radius:14px;padding:11px 12px;
+  border:1px dashed #c7e3d4;
+}
+.sel-title{font-size:12.5px;color:var(--green-d);display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.sel-title b{font-size:15px}
+.link{color:var(--green);font-size:12px;text-decoration:underline;text-underline-offset:2px}
+.sel-tags{display:flex;flex-wrap:wrap;gap:6px;min-height:24px;align-items:center}
+.sel-tag{
+  font-size:12.5px;padding:3px 9px;border-radius:14px;background:#fff;color:var(--green-d);
+  border:1px solid #d6eade;cursor:pointer;transition:.15s
+}
+.sel-tag:hover{border-color:var(--red);color:var(--red);background:var(--red-l)}
+.sel-tags .empty{font-size:12px;color:#93a09a}
+.manual-row{display:flex;gap:8px;margin-top:10px}
+.manual-row input{
+  flex:1;padding:8px 12px;border:1px solid var(--line);border-radius:10px;
+  background:#fafbf8;font-size:12.5px;outline:none
+}
+.manual-row input:focus{border-color:var(--green);background:#fff}
+
+/* ============ 偏好 ============ */
+.prefs{padding:18px;margin-top:16px}
+.pref-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pref{display:flex;flex-direction:column;gap:6px}
+.pref.wide{grid-column:1 / -1}
+.pref>label{font-size:12px;color:var(--muted);font-weight:600}
+.seg{display:flex;gap:4px;background:#f2f5f0;padding:3px;border-radius:11px}
+.seg button{flex:1;font-size:12px;padding:5px 2px;border-radius:9px;color:#55635b;transition:.15s}
+.seg button.on{background:#fff;color:var(--green-d);font-weight:700;box-shadow:0 2px 8px rgba(30,43,36,.08)}
+.chk-row{display:flex;flex-wrap:wrap;gap:6px}
+.chk-row label{
+  font-size:12px;padding:4px 9px;border-radius:20px;border:1px solid #e2e8de;
+  background:#fff;color:#55635b;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:4px
+}
+.chk-row label:has(input:checked){background:var(--gold-l);border-color:#ecc79a;color:#8a5a1e;font-weight:600}
+.chk-row input{accent-color:var(--gold);width:12px;height:12px}
+.cta-row{display:flex;align-items:center;gap:10px;margin-top:16px}
+
+/* ============ 按钮 ============ */
+.btn{
+  border-radius:11px;font-size:13px;padding:9px 16px;font-weight:600;transition:.18s;
+  border:1px solid transparent;display:inline-flex;align-items:center;gap:5px;justify-content:center
+}
+.btn.primary{background:linear-gradient(135deg,#2f7d5f,#3f9a72);color:#fff;box-shadow:0 6px 18px rgba(47,125,95,.28)}
+.btn.primary:hover{transform:translateY(-1px);box-shadow:0 9px 22px rgba(47,125,95,.32)}
+.btn.ghost{background:#fff;border-color:#dde5da;color:#3f4f47}
+.btn.ghost:hover{border-color:var(--green);color:var(--green-d);background:#f8fcfa}
+.btn.big{padding:12px 22px;font-size:14px;border-radius:13px}
+.btn.small{padding:6px 12px;font-size:12px;border-radius:9px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn.ghost.small.on{background:var(--green-l);border-color:#bfe0cf;color:var(--green-d);font-weight:700}
+.st{color:#ccd6cf;letter-spacing:1px}
+.st.on{color:#e08a2e}
+
+/* ============ Tabs ============ */
+.tabcard{overflow:hidden}
+.tabs{display:flex;gap:4px;padding:7px;background:#f3f6f1;border-bottom:1px solid var(--line)}
+.tabs button{
+  flex:1;font-size:13px;padding:8px 4px;border-radius:10px;color:#5d6b63;font-weight:600;transition:.15s
+}
+.tabs button.on{background:#fff;color:var(--green-d);box-shadow:0 2px 10px rgba(30,43,36,.09)}
+.tabs button .n{font-size:11px;opacity:.6;margin-left:2px}
+.tab-body{padding:18px;display:none}
+.tab-body.on{display:block}
+
+/* ============ 今日方案 ============ */
+.plan-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.kicker{font-size:11px;letter-spacing:1.6px;color:var(--gold);font-weight:700;text-transform:uppercase}
+.plan-top h3{font-size:19px;font-weight:800;margin-top:2px}
+.plan-box{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.meal{
+  border:1px solid var(--line);border-radius:15px;overflow:hidden;background:#fff;
+  transition:.2s;cursor:pointer;position:relative
+}
+.meal:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(30,43,36,.1)}
+.meal .thumb{height:96px}
+.meal-body{padding:10px 12px 12px}
+.meal-role{
+  position:absolute;top:8px;left:8px;font-size:10.5px;padding:2px 8px;border-radius:10px;
+  background:rgba(255,255,255,.92);color:#3c4a43;font-weight:700;letter-spacing:.5px
+}
+.meal-name{font-size:14.5px;font-weight:700;margin-bottom:3px}
+.meal-meta{font-size:11.5px;color:var(--muted)}
+.meal-why{font-size:11.5px;color:#4b5a52;margin-top:6px;line-height:1.55}
+.why-box{margin-top:14px;border-left:3px solid var(--green);background:#f7fbf8;border-radius:0 12px 12px 0;padding:12px 14px}
+.why-box h4{font-size:12.5px;color:var(--green-d);margin-bottom:6px}
+.why-box ul{list-style:none;display:flex;flex-direction:column;gap:4px}
+.why-box li{font-size:12.5px;color:#46544c;line-height:1.65;padding-left:14px;position:relative}
+.why-box li::before{content:"·";position:absolute;left:3px;color:var(--green);font-weight:800}
+.nutri-box{margin-top:12px;border:1px solid var(--line);border-radius:14px;padding:13px 14px}
+.nutri-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.nutri-head h4{font-size:12.5px}
+.nutri-total{font-size:11.5px;color:var(--muted)}
+.nutri-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px 16px}
+.nrow{display:flex;flex-direction:column;gap:4px}
+.nrow .lab{display:flex;justify-content:space-between;font-size:11.5px;color:#55635b}
+.nrow .lab b{color:var(--ink)}
+.bar{height:6px;border-radius:4px;background:#eef1ec;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#2f7d5f,#8dc9ab);transition:width .5s}
+.bar.gold i{background:linear-gradient(90deg,#d9862f,#f0bb78)}
+.bar.blue i{background:linear-gradient(90deg,#3b6f9e,#8db6d8)}
+.grade{
+  display:inline-flex;align-items:center;gap:4px;font-size:11.5px;padding:2px 9px;border-radius:10px;
+  background:var(--green-l);color:var(--green-d);font-weight:700
+}
+.unused-box{margin-top:12px;font-size:12px;color:#7a6a4a;background:var(--gold-l);border-radius:12px;padding:10px 12px;display:none}
+.unused-box b{color:#8a5a1e}
+.empty-state{
+  text-align:center;padding:40px 16px;color:#9aa69f;font-size:13px;
+  border:1px dashed #dde5da;border-radius:14px;background:#fbfcfa;line-height:1.8
+}
+.combo-wrap{margin-top:16px}
+.combo-title{font-size:12px;color:var(--muted);margin-bottom:9px;display:flex;align-items:center;gap:6px}
+.combo-title::before{content:"";width:3px;height:12px;background:var(--gold);border-radius:2px;display:inline-block}
+.combo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:10px}
+.combo{
+  text-align:left;border:1px solid var(--line);border-radius:14px;padding:11px 13px;background:#fff;
+  transition:.18s;display:flex;flex-direction:column;gap:3px
+}
+.combo:hover{border-color:#a9d3bd;box-shadow:0 8px 20px rgba(30,43,36,.08);transform:translateY(-2px)}
+.combo b{font-size:13px;color:var(--ink)}
+.combo span{font-size:11.5px;color:var(--muted)}
+.combo em{
+  font-style:normal;font-size:11px;color:var(--green-d);background:var(--green-l);
+  padding:2px 7px;border-radius:6px;display:inline-block;margin-top:5px;align-self:flex-start
+}
+
+/* ============ 菜品卡 ============ */
+.lib-bar{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.cat-row{display:flex;flex-wrap:wrap;gap:6px}
+.cat-row .fbtn{
+  font-size:12px;padding:5px 12px;border-radius:20px;border:1px solid #e2e8de;background:#fff;color:#55635b
+}
+.cat-row .fbtn.on{background:#22352c;color:#fff;border-color:#22352c}
+.lib-tools{display:flex;gap:8px;flex-wrap:wrap}
+.lib-tools select,.lib-tools input{
+  padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:#fafbf8;font-size:12.5px;outline:none
+}
+.lib-tools input{flex:1;min-width:120px}
+.dish-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:12px}
+.dish{
+  border:1px solid var(--line);border-radius:15px;overflow:hidden;background:#fff;
+  cursor:pointer;transition:.2s;position:relative
+}
+.dish:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(30,43,36,.11);border-color:#d5e5db}
+.thumb{
+  height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:relative;color:#fff
+}
+.thumb .em{font-size:32px;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.15))}
+.thumb .tl{font-size:10px;letter-spacing:1.6px;opacity:.75;margin-top:5px}
+.t-meat{background:linear-gradient(135deg,#a8563f,#cd8355)}
+.t-fish{background:linear-gradient(135deg,#2f6d86,#5fa3bb)}
+.t-veg{background:linear-gradient(135deg,#3f7d4a,#7fb069)}
+.t-soup{background:linear-gradient(135deg,#8a6b3f,#c89a5e)}
+.t-staple{background:linear-gradient(135deg,#6d5b7d,#a08bb3)}
+.thumb .pic-note{
+  position:absolute;right:6px;bottom:5px;font-size:9px;opacity:.55;letter-spacing:.5px
+}
+/* 菜品实拍图：img/gen/<id>.jpg，若存在 img/real/<id>.jpg 优先用实拍图 */
+.thumb .pic{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;display:block
+}
+.thumb .shade{
+  position:absolute;inset:0;z-index:3;pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.26) 0%,rgba(0,0,0,0) 32%,rgba(0,0,0,0) 62%,rgba(0,0,0,.34) 100%)
+}
+.thumb .em,.thumb .tl{position:relative;z-index:1}
+.meal-role,.match-badge,.vid-badge{z-index:4}
+.detail-icon{overflow:hidden;position:relative}
+.detail-icon img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2}
+/* 拍照识别面板 */
+.shot-entry{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0 12px}
+.shot-entry .hint{font-size:12px;color:#8d9a93}
+.shot-entry2{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 10px}
+.shot-preview{
+  border:1px dashed #cfdcd3;border-radius:12px;background:#f8faf7;min-height:150px;
+  display:flex;align-items:center;justify-content:center;color:#93a09a;font-size:12.5px;overflow:hidden
+}
+.shot-preview img{max-width:100%;max-height:240px;display:block;border-radius:8px}
+.shot-list{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.shot-item{display:flex;align-items:center;gap:8px;font-size:13px;padding:7px 10px;border-radius:10px;background:#f7faf7;border:1px solid #e6efe9}
+.shot-item.off{opacity:.55}
+.shot-item .nm{font-weight:700;color:#26362d}
+.shot-item .mt{color:#8d9a93;font-size:11.5px}
+.shot-item .bad{color:#c9483f;font-size:11.5px}
+.shot-foot{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+.shot-foot .hint{font-size:12px;color:#8d9a93}
+.match-badge{
+  position:absolute;top:7px;left:7px;font-size:10px;padding:2px 7px;border-radius:9px;
+  background:rgba(255,255,255,.94);color:#2c4a3b;font-weight:700
+}
+.match-badge.warn{background:#fff3e2;color:#a3601a}
+.vid-badge{
+  position:absolute;top:7px;right:7px;font-size:10px;padding:2px 7px;border-radius:9px;
+  background:rgba(0,0,0,.34);color:#fff
+}
+.dish-body{padding:9px 11px 11px}
+.dish-name{font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:6px}
+.dish-name .star{font-size:13px;color:#c8cfca}
+.dish-name .star.on{color:var(--gold)}
+.dish-meta{font-size:11px;color:var(--muted);margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 8px}
+.dish-tag{
+  display:inline-block;font-size:10px;padding:1px 6px;border-radius:6px;background:#f2f5f0;color:#5f6d65;margin-top:6px;margin-right:4px
+}
+.dish-tag.g{background:var(--green-l);color:var(--green-d)}
+.dish-tag.r{background:var(--red-l);color:var(--red)}
+
+/* ============ 详情弹窗 ============ */
+.mask{
+  position:fixed;inset:0;background:rgba(18,28,23,.45);backdrop-filter:blur(3px);
+  display:none;align-items:center;justify-content:center;z-index:100;padding:20px
+}
+.mask.on{display:flex}
+.modal{
+  width:100%;max-width:860px;max-height:88vh;overflow-y:auto;background:#fff;
+  border-radius:22px;box-shadow:0 30px 70px rgba(0,0,0,.28);position:relative
+}
+.modal-close{
+  position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;
+  background:rgba(255,255,255,.9);color:#4b5a52;font-size:16px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 10px rgba(0,0,0,.12);z-index:5
+}
+.detail-hero{display:flex;gap:16px;padding:22px 24px 16px;align-items:flex-start}
+.detail-icon{
+  width:86px;height:86px;border-radius:18px;flex:0 0 86px;display:flex;align-items:center;justify-content:center;
+  font-size:40px;color:#fff
+}
+.detail-hero h2{font-size:24px;font-weight:800;line-height:1.3}
+.detail-sub{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.detail-sub span{font-size:11.5px;padding:3px 9px;border-radius:10px;background:#f2f5f0;color:#54625a}
+.detail-sub span.hl{background:var(--green-l);color:var(--green-d);font-weight:600}
+.detail-body{padding:0 24px 24px}
+.dsec{border-top:1px solid var(--line);padding:16px 0}
+.dsec h4{font-size:13px;font-weight:800;margin-bottom:9px;display:flex;align-items:center;gap:6px}
+.dsec h4 .num{
+  width:18px;height:18px;border-radius:6px;background:var(--green);color:#fff;font-size:11px;
+  display:inline-flex;align-items:center;justify-content:center
+}
+.ing-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 14px}
+.ing-item{font-size:12.5px;display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed #eef1ec;padding:4px 0}
+.ing-item .q{color:var(--muted);font-size:11.5px}
+.ing-item.lack{color:var(--red)}
+.steps-list{list-style:none;display:flex;flex-direction:column;gap:10px}
+.steps-list li{display:flex;gap:10px;font-size:13px;line-height:1.75;color:#3a4840}
+.steps-list li .idx{
+  flex:0 0 22px;height:22px;border-radius:50%;background:#eef5f0;color:var(--green-d);
+  font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:2px
+}
+.steps-list li b{color:var(--ink)}
+.tips-box{background:#f7fbf8;border-radius:12px;padding:11px 13px;font-size:12.5px;color:#41514a}
+.tips-box div{padding-left:14px;position:relative;line-height:1.7}
+.tips-box div::before{content:"✦";position:absolute;left:0;color:var(--gold);font-size:11px}
+.nutri-mini{display:flex;flex-wrap:wrap;gap:8px}
+.nutri-mini span{
+  font-size:12px;padding:5px 10px;border-radius:10px;background:#f2f5f0;color:#4b5a52
+}
+.nutri-mini span b{color:var(--ink)}
+.video-box{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.video-box .vb{
+  display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:8px 14px;border-radius:11px;
+  border:1px solid #e3e9e4;background:#fff;font-weight:600;color:#41514a
+}
+.video-box .vb:hover{border-color:var(--green);color:var(--green-d)}
+.video-box .vb.bili{background:#eef6fb;border-color:#cfe4f2;color:#2f6d86}
+.video-box .vb.dy{background:#1f2326;color:#fff;border-color:#1f2326}
+.note{font-size:11.5px;color:#8d9a93;margin-top:8px;line-height:1.7}
+.detail-actions{display:flex;flex-wrap:wrap;gap:8px;padding-top:16px;border-top:1px solid var(--line)}
+
+/* ============ AI 厨房 ============ */
+.ai-status{
+  display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:13px;
+  background:#f4f8f6;border:1px solid #dfebe4;font-size:12.5px;color:#41514a;margin-bottom:12px
+}
+.dot{width:8px;height:8px;border-radius:50%;background:#b7c2bb;flex:0 0 8px}
+.dot.on{background:#37a06f;box-shadow:0 0 0 3px rgba(55,160,111,.18)}
+.ai-status .tagm{margin-left:auto;font-size:11px;color:#7b8880}
+.quick-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.quick-chips button{
+  font-size:12px;padding:5px 11px;border-radius:20px;border:1px dashed #cfdcd4;background:#fbfdfb;color:#50605a
+}
+.quick-chips button:hover{border-color:var(--green);color:var(--green-d);border-style:solid}
+.chat{
+  height:300px;overflow-y:auto;background:#fafbf8;border:1px solid var(--line);border-radius:14px;
+  padding:14px;display:flex;flex-direction:column;gap:10px
+}
+.msg{max-width:86%;font-size:12.8px;line-height:1.72;padding:9px 13px;border-radius:14px;white-space:pre-wrap;word-break:break-word}
+.msg.bot{background:#fff;border:1px solid var(--line);border-radius:4px 14px 14px 14px;align-self:flex-start;color:#34423b}
+.msg.me{background:var(--green);color:#fff;border-radius:14px 4px 14px 14px;align-self:flex-end}
+.msg.me .who{display:inline;margin-right:5px;opacity:.72}
+.msg .who{display:block;font-size:10px;opacity:.6;margin-bottom:3px;letter-spacing:.5px}
+.chat-input{display:flex;gap:8px;margin-top:10px}
+.chat-input input{
+  flex:1;padding:10px 13px;border:1px solid var(--line);border-radius:11px;background:#fafbf8;font-size:13px;outline:none
+}
+.chat-input input:focus{border-color:var(--green);background:#fff}
+.ai-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+.typing{display:flex;gap:3px;align-items:center}
+.typing i{width:5px;height:5px;border-radius:50%;background:#9fb0a7;animation:bl 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes bl{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-2px)}}
+
+/* ============ 习惯 ============ */
+.habit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:11px;margin-bottom:14px}
+.hstat{border:1px solid var(--line);border-radius:14px;padding:13px}
+.hstat .k{font-size:11.5px;color:var(--muted)}
+.hstat .v{font-size:22px;font-weight:800;margin-top:2px;color:var(--green-d)}
+.hstat .v small{font-size:12px;font-weight:600;color:var(--muted);margin-left:3px}
+.hstat .sub{font-size:11px;color:#93a09a;margin-top:2px}
+.hsec{margin-top:14px}
+.hsec h4{font-size:12.5px;font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.rank{display:flex;flex-direction:column;gap:7px}
+.rank-row{display:flex;align-items:center;gap:9px;font-size:12.5px}
+.rank-row .no{width:18px;font-size:11px;color:#9aa69f;font-weight:700}
+.rank-row .rname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank-row .rbar{flex:0 0 40%;height:6px;border-radius:4px;background:#eef1ec;overflow:hidden}
+.rank-row .rbar i{display:block;height:100%;background:linear-gradient(90deg,#2f7d5f,#8dc9ab);border-radius:4px}
+.rank-row .rv{font-size:11px;color:var(--muted);flex:0 0 44px;text-align:right}
+.hist-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto}
+.hist-item{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:6px 10px;border-radius:9px;background:#fafbf8}
+.hist-item .when{margin-left:auto;font-size:11px;color:#9aa69f}
+.empty-line{font-size:12px;color:#9aa69f;padding:8px 0}
+.profile-box{background:#f7fbf8;border-radius:13px;padding:12px 14px;font-size:12.5px;line-height:1.8;color:#3f4f47;border:1px dashed #cfe3d7}
+
+/* ============ 设置 / 说明 ============ */
+.form{display:flex;flex-direction:column;gap:11px}
+.form label{font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:3px}
+.form input,.form select{
+  width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#fafbf8;font-size:12.5px;outline:none
+}
+.form input:focus,.form select:focus{border-color:var(--green);background:#fff}
+.form .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.small-note{font-size:11.5px;color:#8d9a93;line-height:1.7}
+.guide h3{font-size:15px;font-weight:800;margin:18px 0 8px}
+.guide h3:first-child{margin-top:0}
+.guide p,.guide li{font-size:12.8px;line-height:1.85;color:#3f4d46}
+.guide ol,.guide ul{padding-left:18px;display:flex;flex-direction:column;gap:5px}
+.guide pre{
+  background:#1e2b24;color:#d7e7de;border-radius:11px;padding:12px 14px;font-size:11.5px;
+  overflow-x:auto;line-height:1.7;margin:8px 0;font-family:ui-monospace,Menlo,Consolas,monospace
+}
+.guide code{background:#f0f4f1;padding:1px 5px;border-radius:5px;font-size:11.5px}
+.guide .callout{background:var(--gold-l);border-radius:11px;padding:10px 13px;font-size:12px;color:#7a5a26;margin:10px 0}
+.prev-list{display:grid;gap:8px;margin-top:10px}
+.prev-row{display:flex;gap:10px;align-items:flex-start;font-size:12.5px}
+.prev-row .pt{flex:0 0 74px;font-weight:700;color:var(--green-d)}
+.tip-toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);opacity:0;pointer-events:none;
+  background:#22352c;color:#fff;font-size:12.5px;padding:10px 18px;border-radius:12px;z-index:200;
+  transition:.25s;box-shadow:0 10px 30px rgba(0,0,0,.2);max-width:80vw
+}
+.tip-toast.on{opacity:1;transform:translate(-50%,0)}
+footer{border-top:1px solid var(--line);padding:22px 0 34px;color:#93a09a;font-size:11.5px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:10px 22px;justify-content:space-between}
+
+@media (max-width:980px){
+  .layout{grid-template-columns:1fr}
+  .dish-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .detail-hero{padding:18px 16px 12px}
+  .detail-body{padding:0 16px 18px}
+  .detail-icon{width:64px;height:64px;flex:0 0 64px;font-size:30px}
+  .detail-hero h2{font-size:19px}
+  .chat{height:260px}
+  .tab-body{padding:14px}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-in">
+    <div class="logo-row">
+      <div class="logo">🍳</div>
+      <div>
+        <div class="brand">智能菜单</div>
+        <div class="brand-sub">Smart Menu · 把冰箱变成一桌菜</div>
+      </div>
+    </div>
+    <h1>家里有什么，就做什么</h1>
+    <p class="hero-desc">不会做饭也没关系。勾选现有食材，或直接拍一张冰箱照片自动识别，系统配出一荤一素一汤，<br class="pc">每一步都写到“大火 30 秒、肉变白就盛出”。它还记着你的口味、忌口和最近做过的菜。</p>
+    <div class="hero-tags">
+      <span>🧺 食材库 <b id="statIng">—</b> 项</span>
+      <span>📖 菜品库 <b id="statDish">—</b> 道</span>
+      <span>📷 拍照识别</span>
+      <span>🤖 可接入大模型</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap layout">
+
+  <!-- 左：食材 + 偏好 -->
+  <div>
+    <section class="card picker">
+      <div class="card-head">
+        <div>
+          <h2>① 勾选家里现有的食材</h2>
+          <p class="hint">点一下选中，再点一下取消</p>
+        </div>
+        <div class="search-inline"><input id="ingSearch" placeholder="搜索：三线肉 / 虎皮椒"></div>
+      </div>
+      <div class="shot-entry">
+        <button id="openShot" class="btn primary small">📷 拍照识别食材</button>
+        <span class="hint">拍冰箱或台面，自动列清单，再由你确认勾选</span>
+      </div>
+      <div id="ingGroups" class="groups"></div>
+      <div class="selected-bar">
+        <div class="sel-title">已选 <b id="selCount">0</b> 项
+          <button id="clearSel" class="link" style="margin-left:auto">清空</button>
+        </div>
+        <div id="selTags" class="sel-tags"><span class="empty">还没有选食材</span></div>
+      </div>
+      <div class="manual-row">
+        <input id="manualInput" placeholder="找不到？直接打：鸡蛋，西红柿，小葱">
+        <button id="manualAdd" class="btn ghost small">加入</button>
+      </div>
+    </section>
+
+    <section class="card prefs">
+      <div class="card-head">
+        <div>
+          <h2>② 说说你的情况</h2>
+          <p class="hint">设置会存在本机，下次打开自动带上</p>
+        </div>
+      </div>
+      <div class="pref-grid">
+        <div class="pref">
+          <label>口味</label>
+          <div class="seg" id="prefTaste">
+            <button data-v="0">清淡</button><button data-v="1">微辣</button>
+            <button data-v="2">中辣</button><button data-v="3">重辣</button>
+          </div>
+        </div>
+        <div class="pref">
+          <label>几个人吃</label>
+          <div class="seg" id="prefPeople">
+            <button data-v="1">1 人</button><button data-v="2">2 人</button><button data-v="3">3-4 人</button>
+          </div>
+        </div>
+        <div class="pref wide">
+          <label>能花多久做饭</label>
+          <div class="seg" id="prefTime">
+            <button data-v="20">20 分钟内</button><button data-v="40">40 分钟内</button><button data-v="99">不限</button>
+          </div>
+        </div>
+        <div class="pref wide">
+          <label>忌口 / 过敏（会直接过滤掉）</label>
+          <div class="chk-row" id="prefAvoid">
+            <label><input type="checkbox" value="辣">不吃辣</label>
+            <label><input type="checkbox" value="内脏">不吃内脏</label>
+            <label><input type="checkbox" value="牛羊肉">不吃牛羊肉</label>
+            <label><input type="checkbox" value="海鲜">海鲜过敏</label>
+            <label><input type="checkbox" value="蛋">不吃蛋</label>
+            <label><input type="checkbox" value="香菜">不吃香菜</label>
+          </div>
+        </div>
+        <div class="pref wide">
+          <label>今天更想要</label>
+          <div class="chk-row" id="prefGoal">
+            <label><input type="checkbox" value="高蛋白">多点蛋白质</label>
+            <label><input type="checkbox" value="低脂">清淡少油</label>
+            <label><input type="checkbox" value="补铁">补铁</label>
+            <label><input type="checkbox" value="补钙">补钙</label>
+            <label><input type="checkbox" value="高纤维">多吃蔬菜</label>
+            <label><input type="checkbox" value="维C">补维C</label>
+          </div>
+        </div>
+      </div>
+      <div class="cta-row">
+        <button id="genPlan" class="btn primary big">生成今天的菜谱 →</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- 右：结果 -->
+  <aside class="card tabcard">
+    <div class="tabs" id="tabs">
+      <button data-tab="plan" class="on">今日方案</button>
+      <button data-tab="dish">菜品库<span class="n" id="tabDishNum"></span></button>
+      <button data-tab="ai">AI 厨房</button>
+      <button data-tab="habit">我的习惯</button>
+    </div>
+
+    <div class="tab-body on" id="tabPlan">
+      <div class="plan-top">
+        <div>
+          <div class="kicker">TODAY'S MENU · <span id="planTime">等待选择</span></div>
+          <h3 id="planTitle">先勾几样食材，我来配菜</h3>
+        </div>
+        <button id="regenPlan" class="btn ghost small">↻ 换一套</button>
+      </div>
+      <div id="planBox" class="plan-box">
+        <div class="empty-state">左边勾选食材 → 点「生成今天的菜谱」<br>我会按 一荤 + 一素 + 一汤 配好，并算好营养和总用时</div>
+      </div>
+      <div id="planWhy" class="why-box" style="display:none"></div>
+      <div id="planNutri" class="nutri-box" style="display:none"></div>
+      <div id="unusedBox" class="unused-box"></div>
+    </div>
+
+    <div class="tab-body" id="tabDish">
+      <div class="lib-bar">
+        <div class="cat-row" id="catFilter"></div>
+        <div class="lib-tools">
+          <button id="onlyRel" class="btn ghost small">只看相关的</button>
+          <select id="sortSel">
+            <option value="match">按匹配度排序</option>
+            <option value="time">按用时从短到长</option>
+            <option value="diff">按难度从易到难</option>
+            <option value="kcal">按热量从低到高</option>
+          </select>
+          <input id="dishSearch" placeholder="搜菜名或食材，如 豆腐">
+        </div>
+      </div>
+      <div id="dishGrid" class="dish-grid"></div>
+    </div>
+
+    <div class="tab-body" id="tabAi">
+      <div class="ai-status" id="aiStatus"></div>
+      <div class="quick-chips" id="quickAsk"></div>
+      <div class="chat" id="chatLog"></div>
+      <div class="chat-input">
+        <input id="chatInput" placeholder="问点什么，比如：肉怎么炒才不柴？">
+        <button id="chatSend" class="btn primary small">发送</button>
+      </div>
+      <div class="ai-actions">
+        <button id="aiPlanBtn" class="btn ghost small">🤖 AI 优化今日菜单</button>
+        <button id="aiHabitBtn" class="btn ghost small">🧠 AI 读我的习惯</button>
+        <button id="openSettings" class="btn ghost small">⚙️ 模型设置</button>
+        <button id="openGuide" class="btn ghost small">🔌 怎么接入</button>
+      </div>
+    </div>
+
+    <div class="tab-body" id="tabHabit">
+      <div id="habitBox"></div>
+    </div>
+  </aside>
+</div>
+
+<div class="mask" id="mask"><div class="modal" id="modal"></div></div>
+<div class="tip-toast" id="toast"></div>
+
+<footer>
+  <div class="wrap">
+    <span>营养数值为常见做法的估算值，仅用于搭配参考，不作医学依据。</span>
+    <span>视频为站内搜索入口，非本站视频；菜品图为 AI 按其菜名与主料生成，如需实拍可放 img/real/&lt;编号&gt;.jpg 自动替换。</span>
+  </div>
+</footer>
+
+<script>
+/* =========================================================
+   一、食材库（4 大分类）
+   字符串 → 显示名，括号内为别名，匹配时按主名 + 别名解析
+   对象 {k,d} → k 为主名（匹配用），d 为展示补充
+   ========================================================= */
+const ING = [
+  {
+    key:"meat", name:"肉蛋家禽", icon:"🥩",
+    items:[
+      "猪肉",{k:"精瘦肉",d:"猪肉"},"五花肉（三线肉）","猪前夹肉","前排（猪前排）","排骨",
+      "牛肉","羊肉","鸡翅","鸭翅","鸡脚","鸭掌","鸡胗","鸭胗",
+      "鸡蛋","鸭蛋","咸鸭蛋","皮蛋"
+    ]
+  },
+  {
+    key:"sea", name:"水产海鲜", icon:"🐟",
+    items:[
+      {k:"花甲",d:"花蛤 250/500g"},"鲫鱼",{k:"基围虾",d:"鲜活 450-500g"},{k:"青虾",d:"冰冻特大"},
+      "生蚝",{k:"黄辣丁",d:"黄骨鱼/昂刺鱼"},"牛蛙",{k:"带鱼",d:"冷冻带鱼段"},"草鱼",
+      {k:"墨鱼仔",d:"冷冻"},"红虾仁",{k:"马面鱼",d:"耗儿鱼小号"},{k:"龙虾尾",d:"速冻"},
+      "多宝鱼",{k:"花鲢鱼",d:"鲜活"}
+    ]
+  },
+  {
+    key:"veg", name:"时令鲜蔬", icon:"🥬",
+    items:[
+      "薄皮椒（虎皮椒）","螺丝椒","二荆条（线椒）","青小米椒","红小米辣椒","红美人椒",
+      "绿豆芽","黄豆芽","魔芋","米豆腐","菜心","芋儿","西红柿（番茄/普罗旺斯）","无筋豆",
+      "黄瓜（青黄瓜/长黄瓜/旱黄瓜）","黄心土豆","小葱","圆包菜（莲白）","嫩豆腐","小芥菜（盖菜）",
+      "厚豆干","瓠瓜（付子瓜/蒲瓜）","农家小水白菜","上海青（瓢儿白）","油麦菜","老豆腐",
+      "红皮洋葱","本地生菜","散花菜（松花菜）","云南大水白菜","大葱","木耳菜","莲藕",
+      "金针菇","黄甜玉米（水果玉米）","红薯（蜜薯）","小蒜","贝贝南瓜","长丝瓜","冬瓜（米冬瓜）",
+      "宽扁豆角（刀豆）","老南瓜","八月瓜（佛手瓜）","长紫茄子","苦瓜","平菇","娃娃菜（黄心娃娃菜）",
+      "独蒜","菠菜","蒜苗","莴笋杆","长豇豆","渣海椒","小香菜","胡萝卜","茭白（高笋）",
+      "竹筒白","长嫩南瓜（西葫芦瓜）","干豆皮","牛心白",{k:"面藕",d:"洪湖面藕"}
+    ]
+  },
+  {
+    key:"pantry", name:"粮油调料", icon:"🍚",
+    items:[
+      "大米","面粉","挂面","食用油","盐","生抽","老抽","香醋","料酒","蚝油",
+      "豆瓣酱","淀粉","白糖","花椒","干辣椒","八角","姜","孜然粉","辣椒面","白胡椒粉","香油"
+    ]
+  }
+];
+
+/* =========================================================
+   二、菜品库
+   main 只用食材库里的主名，保证「勾了就能匹配」
+   steps 格式：步骤名｜具体动作（含火候、时间、判断标准）
+   ========================================================= */
+const RECIPES = [
+{id:1,name:"回锅肉",cat:"荤菜",emoji:"🥓",cuisine:"川菜",time:25,diff:3,spicy:2,
+ main:["五花肉","薄皮椒","蒜苗"],opt:["独蒜","姜"],season:["豆瓣酱","生抽","白糖","料酒","食用油"],
+ kcal:520,protein:22,fat:38,carb:12,fiber:2.4,goals:["高蛋白"],flags:["猪肉"],
+ steps:["煮肉｜五花肉整块冷水下锅，加 2 片姜、1 勺料酒，水开后转中火煮 18 分钟，筷子能扎透、没有血水就捞出，摊凉到不烫手再切 2 毫米薄片（热切会散）。","备料｜薄皮椒斜切段；蒜苗拍扁切 3 厘米段，蒜白和蒜叶分开放；1 勺豆瓣酱剁细，避免大颗粒硌牙。","煸肉｜锅烧热不放油，下肉片中火慢煸 3 分钟，边缘卷成“灯盏窝”、锅底出一层油即可，把多余的油舀出来。","炒酱｜转小火下豆瓣酱，炒 20 秒出红油，加蒜白、2 克白糖炒香，火大就糊。","合炒｜倒回肉片转大火翻 30 秒，下薄皮椒炒 1 分钟断生，最后放蒜叶、淋半勺生抽，翻两下立刻出锅。"],
+ tips:["肉片切薄、放凉再切，口感才不柴不散。","煸出的油一定舀掉一部分，否则整盘发腻。"],
+ swap:"没有蒜苗可用大葱段；薄皮椒换螺丝椒会更辣。",video:"回锅肉"},
+
+{id:2,name:"螺丝椒小炒肉",cat:"荤菜",emoji:"🌶️",cuisine:"湘菜",time:15,diff:2,spicy:2,
+ main:["猪前夹肉","螺丝椒","独蒜"],opt:["姜"],season:["生抽","老抽","料酒","淀粉","盐","食用油"],
+ kcal:480,protein:24,fat:34,carb:10,fiber:2,goals:["高蛋白"],flags:["猪肉"],
+ steps:["切片｜猪前夹肉带一点肥切 2 毫米薄片；螺丝椒斜切马耳片；独蒜拍碎切末。","腌肉｜肉片加半勺生抽、半勺料酒、1 小勺淀粉抓匀，静置 10 分钟锁住水分。","干煸｜空锅烧到冒烟，下螺丝椒不放油干煸 40 秒，表皮起皱微焦（虎皮状）盛出，这一步去生辣、增香。","炒肉｜热锅冷油下肉片，中大火炒 2 分钟至变色出油、边缘微黄。","合炒｜下蒜末炒香，倒回螺丝椒，加 1 勺生抽、几滴老抽、2 克盐，大火翻 30 秒出锅。"],
+ tips:["辣椒先干煸，是这道菜香而不呛的关键。","肉片别炒过 3 分钟，久了发硬。"],
+ swap:"螺丝椒可换薄皮椒或二荆条。",video:"农家小炒肉"},
+
+{id:3,name:"青椒肉丝",cat:"荤菜",emoji:"🥢",cuisine:"家常菜",time:12,diff:2,spicy:1,
+ main:["精瘦肉","薄皮椒"],opt:["独蒜"],season:["生抽","淀粉","料酒","盐","食用油"],
+ kcal:300,protein:26,fat:16,carb:9,fiber:2,goals:["高蛋白"],flags:[],
+ steps:["切丝｜精瘦肉顺纹切 3 毫米粗的丝（顺纹切不易断），薄皮椒去籽切同样粗细的丝。","上浆｜肉丝加 1 勺生抽、半勺料酒、1 勺淀粉、1 勺清水，抓到黏手，最后封 1 勺油，静置 10 分钟。","滑油｜锅烧热倒油，油温四成热（筷子插入冒小泡）下肉丝，中火滑散 40 秒，肉变白立刻盛出。","炒椒｜底油下蒜末爆香，倒入椒丝大火炒 40 秒，表皮微微发亮即可。","合炒｜倒回肉丝，加 2 克盐、几滴生抽，大火翻 15 秒出锅。"],
+ tips:["上浆时加一勺清水，肉丝才嫩，这是关键。","油温太高肉丝会结团，四成热最稳。"],
+ swap:"薄皮椒可换二荆条；不吃辣可换圆包菜丝做包菜肉丝。",video:"青椒肉丝"},
+
+{id:4,name:"鱼香肉丝",cat:"荤菜",emoji:"🍚",cuisine:"川菜",time:18,diff:3,spicy:1,
+ main:["精瘦肉","胡萝卜","莴笋杆"],opt:["独蒜","姜"],season:["豆瓣酱","香醋","白糖","生抽","淀粉","食用油"],
+ kcal:350,protein:22,fat:16,carb:20,fiber:3,goals:["高蛋白"],flags:[],
+ steps:["切配｜肉切丝上浆（同青椒肉丝）；胡萝卜、莴笋杆切丝，莴笋丝撒 2 克盐腌 5 分钟挤掉水，炒出来才脆。","调汁｜小碗放 1 勺香醋、1 勺白糖、1 勺生抽、半勺淀粉、3 勺清水搅匀，这碗汁决定成败。","滑肉｜四成油温下肉丝滑散变白，盛出。","炒底｜小火下 1 勺豆瓣酱炒 20 秒出红油，加蒜末姜末，倒胡萝卜丝、莴笋丝大火炒 1 分钟。","收汁｜倒回肉丝，淋入碗汁，中火翻 20 秒至汁挂住食材，立刻出锅。"],
+ tips:["糖醋 1:1 才是“鱼香”的底味。","碗汁下锅只能翻几下，久炒会发黏。"],
+ swap:"莴笋杆可用茭白代替；胡萝卜可用黄瓜条。",video:"鱼香肉丝"},
+
+{id:5,name:"肉末茄子",cat:"荤菜",emoji:"🍆",cuisine:"家常菜",time:20,diff:2,spicy:1,
+ main:["精瘦肉","长紫茄子"],opt:["小葱"],season:["豆瓣酱","生抽","独蒜","淀粉","食用油"],
+ kcal:380,protein:16,fat:24,carb:22,fiber:4,goals:["高纤维"],flags:[],
+ steps:["处理｜长紫茄子切 1 厘米粗条，撒 3 克盐抓匀静置 10 分钟，挤出水分——能让茄子少吸一半油。","炒肉｜热锅冷油下肉末，中火炒 2 分钟至散开变白，盛出。","炒酱｜小火下豆瓣酱、蒜末炒 20 秒出红油。","焖茄｜下茄条中火翻炒 1 分钟，加小半碗水，盖盖焖 5 分钟至软。","收汁｜倒回肉末，淋 1 勺生抽，用水淀粉勾薄芡，撒葱花出锅。"],
+ tips:["茄子先盐腌挤水，少油又不腻。","焖的时候火别大，容易糊底。"],
+ swap:"茄子可换厚豆干，做成肉末豆干；不吃辣去掉豆瓣酱改生抽。",video:"肉末茄子"},
+
+{id:6,name:"豆干炒肉",cat:"荤菜",emoji:"🟫",cuisine:"家常菜",time:15,diff:2,spicy:1,
+ main:["厚豆干","精瘦肉","二荆条"],opt:["独蒜"],season:["生抽","蚝油","食用油"],
+ kcal:330,protein:24,fat:20,carb:12,fiber:2,goals:["高蛋白"],flags:[],
+ steps:["切配｜厚豆干切 5 毫米条，二荆条斜切段，精瘦肉切薄片加半勺生抽、半勺淀粉抓匀。","焯豆干｜豆干下开水焯 30 秒捞出，去豆腥，炒时也不易碎。","煸豆干｜少油中火把豆干煸 2 分钟至表面微黄、边缘起小泡，盛出。","炒肉｜大火下肉片炒 1 分钟变色，加蒜末炒香。","合炒｜倒回豆干和二荆条，加 1 勺生抽、半勺蚝油，大火翻 40 秒出锅。"],
+ tips:["豆干先焯再煸，口感更紧实。","蚝油最后放，鲜味才不跑。"],
+ swap:"二荆条可换薄皮椒；厚豆干换干豆皮更入味。",video:"豆干炒肉"},
+
+{id:7,name:"水煮肉片",cat:"荤菜",emoji:"🌶️",cuisine:"川菜",time:25,diff:3,spicy:3,
+ main:["猪前夹肉","绿豆芽","豆瓣酱"],opt:["独蒜","姜","小葱"],season:["花椒","干辣椒","淀粉","生抽","料酒","辣椒面","食用油"],
+ kcal:560,protein:32,fat:42,carb:14,fiber:2,goals:["高蛋白"],flags:["猪肉"],
+ steps:["腌肉｜猪前夹肉切 3 毫米大薄片，加 1 勺生抽、1 勺料酒、2 勺淀粉、2 勺清水抓到发黏，静置 15 分钟。","垫底｜绿豆芽下开水焯 1 分钟，捞出铺在大碗底。","炒汤｜小火下 1 勺豆瓣酱、姜蒜末炒出红油，加 500 毫升热水烧开，放 2 克盐、半勺生抽。","汆肉｜转小火，肉片一片片下锅，先别搅动，等 30 秒定型再轻推，煮 1 分钟变白，连汤倒入碗中。","泼油｜表面撒辣椒面、花椒、蒜末、干辣椒段，烧 3 勺油至冒青烟，浇上去“刺啦”一声即可。"],
+ tips:["肉片下锅先别搅，否则脱浆变柴。","油要烧到冒烟再泼，香味才出得来。"],
+ swap:"绿豆芽可换黄豆芽或娃娃菜；不太能吃辣把辣椒面减半。",video:"水煮肉片"},
+
+{id:8,name:"红烧肉",cat:"荤菜",emoji:"🍖",cuisine:"家常菜",time:60,diff:3,spicy:0,
+ main:["五花肉"],opt:["姜"],season:["白糖","生抽","老抽","料酒","八角","食用油"],
+ kcal:620,protein:20,fat:50,carb:14,fiber:0.5,goals:["高蛋白"],flags:["猪肉"],
+ steps:["切块｜五花肉切 3 厘米见方，冷水下锅加姜片、料酒，水开后煮 3 分钟撇净浮沫，捞出用温水冲（别用冷水，肉会紧）。","煸油｜空锅中小火下肉块煸 4 分钟，逼出部分油脂、表面微黄。","炒糖色｜把肉拨到一边，下 20 克白糖小火炒到融化变枣红、起小泡，立刻翻匀裹色——只有 20 秒，慢了就苦。","炖煮｜加 1 勺料酒、2 勺生抽、半勺老抽、1 颗八角、2 片姜，倒热水没过肉，烧开转最小火炖 40 分钟。","收汁｜开盖转大火，边翻边收 5 分钟，汤汁浓稠挂勺即可。"],
+ tips:["糖色宁可浅一点，炒过头会发苦。","全程加热水，冷水会让肉变硬。"],
+ swap:"没有八角可不放；喜欢甜口把糖加到 25 克。",video:"红烧肉"},
+
+{id:9,name:"芋儿烧肉",cat:"荤菜",emoji:"🍠",cuisine:"川菜",time:40,diff:3,spicy:1,
+ main:["芋儿","五花肉"],opt:["小葱"],season:["豆瓣酱","生抽","八角","姜","食用油"],
+ kcal:520,protein:18,fat:36,carb:26,fiber:3,goals:["高纤维"],flags:["猪肉"],
+ steps:["处理芋儿｜芋儿去皮切滚刀块（戴手套，黏液会让手痒），少油煎到表面微黄，炖的时候不糊汤。","煸肉｜五花肉切块下锅，中火煸 3 分钟出油。","炒料｜下 1 勺豆瓣酱、姜片、八角炒 20 秒出红油，加 1 勺生抽。","烧制｜倒热水没过肉，烧开转小火 15 分钟，再下芋儿继续 15 分钟。","收汁｜芋儿筷子能轻松扎透时，转大火收汁 3 分钟，撒葱花。"],
+ tips:["芋儿先煎再烧，汤才清不糊。","芋儿别和肉一起下，会烂成泥。"],
+ swap:"芋儿可用黄心土豆代替。",video:"芋儿烧肉"},
+
+{id:10,name:"糖醋排骨",cat:"荤菜",emoji:"🍯",cuisine:"家常菜",time:35,diff:3,spicy:0,
+ main:["排骨"],opt:["姜"],season:["白糖","香醋","生抽","料酒","食用油"],
+ kcal:560,protein:26,fat:32,carb:28,fiber:0.5,goals:["高蛋白"],flags:["猪肉"],
+ steps:["焯水｜排骨冷水下锅，加姜片、料酒，煮开撇沫 3 分钟，捞出冲净。","煎香｜少油中火把排骨煎到两面金黄，约 6 分钟，代替油炸。","调汁｜碗里放 1 勺料酒、2 勺生抽、3 勺白糖、4 勺香醋、5 勺清水（12345 口诀），搅匀倒入。","焖煮｜烧开转小火盖盖焖 15 分钟，中途翻一次面。","收汁｜开盖大火收 5 分钟，汤汁挂住排骨，关火前再淋半勺醋提香。"],
+ tips:["最后补半勺醋，酸味才立体。","收汁时人别走开，糖多容易糊。"],
+ swap:"排骨可换前排（肉更多）；不吃酸减 1 勺醋。",video:"糖醋排骨"},
+
+{id:11,name:"土豆烧牛肉",cat:"荤菜",emoji:"🥔",cuisine:"家常菜",time:55,diff:3,spicy:1,
+ main:["牛肉","黄心土豆"],opt:["姜"],season:["豆瓣酱","生抽","老抽","八角","料酒","食用油"],
+ kcal:480,protein:30,fat:22,carb:30,fiber:3,goals:["高蛋白","补铁"],flags:["牛羊肉"],
+ steps:["焯水｜牛肉切 3 厘米块，冷水下锅煮开撇沫 3 分钟，捞出用温水冲净（冷水会让肉收缩变硬）。","煸炒｜少油下牛肉中大火煸 4 分钟至表面焦黄，这是香味的来源。","调味｜加 1 勺料酒、1 勺豆瓣酱、2 片姜、1 颗八角、1 勺生抽、半勺老抽，炒 1 分钟。","炖牛肉｜倒热水没过牛肉 3 厘米，烧开转小火 35 分钟，筷子能插入但还带阻力。","下土豆｜黄心土豆切滚刀块下锅，再炖 15 分钟至边缘发虚，转大火收汁。"],
+ tips:["牛肉一定加热水，冷水会让肉变柴。","土豆后放，早放会炖成泥。"],
+ swap:"黄心土豆可换芋儿；不吃辣去掉豆瓣酱。",video:"土豆烧牛肉"},
+
+{id:12,name:"小炒黄牛肉",cat:"荤菜",emoji:"🥩",cuisine:"湘菜",time:15,diff:2,spicy:2,
+ main:["牛肉","青小米椒","小香菜"],opt:["独蒜"],season:["生抽","蚝油","淀粉","食用油"],
+ kcal:400,protein:30,fat:24,carb:8,fiber:1.5,goals:["高蛋白","补铁"],flags:["牛羊肉","香菜"],
+ steps:["切牛肉｜牛肉逆着纹路切 2 毫米薄片（看到纹路就横着切），这是不柴的第一步。","腌｜加 1 勺生抽、半勺蚝油、1 勺淀粉、1 勺油抓匀，静置 10 分钟。","爆炒｜锅烧到冒烟倒油，下牛肉大火快炒 20 秒，变色立刻盛出。","炒椒｜底油下蒜末、青小米椒圈，大火炒 15 秒出辣香。","合炒｜倒回牛肉，淋半勺生抽，翻 5 下，关火撒小香菜段拌匀。"],
+ tips:["全程最大火，牛肉在锅里不超过 40 秒。","腌肉最后封油，下锅不粘连。"],
+ swap:"青小米椒可用红小米辣椒；不吃香菜换成小葱。",video:"小炒黄牛肉"},
+
+{id:13,name:"洋葱炒牛肉",cat:"荤菜",emoji:"🧅",cuisine:"家常菜",time:15,diff:2,spicy:0,
+ main:["牛肉","红皮洋葱"],opt:["独蒜"],season:["生抽","蚝油","淀粉","白糖","食用油"],
+ kcal:380,protein:28,fat:22,carb:12,fiber:2,goals:["高蛋白","补铁"],flags:["牛羊肉"],
+ steps:["切配｜牛肉逆纹切片，加生抽、淀粉、油腌 10 分钟；红皮洋葱切粗丝抖散。","滑肉｜大火热油下牛肉炒 30 秒变色，盛出。","炒洋葱｜底油下洋葱，中大火炒 1 分钟至边缘透明、出甜香。","合炒｜倒回牛肉，加半勺蚝油、少许白糖，大火翻 20 秒出锅。"],
+ tips:["洋葱炒到透明才甜，别只炒半分钟。","一点糖能压住洋葱的辛辣。"],
+ swap:"红皮洋葱可换大葱段。",video:"洋葱炒牛肉"},
+
+{id:14,name:"孜然羊肉",cat:"荤菜",emoji:"🍢",cuisine:"西北菜",time:15,diff:2,spicy:2,
+ main:["羊肉","红皮洋葱"],opt:["小香菜"],season:["孜然粉","辣椒面","生抽","盐","食用油"],
+ kcal:450,protein:26,fat:32,carb:10,fiber:1.5,goals:["高蛋白","补铁"],flags:["牛羊肉"],
+ steps:["切片｜羊肉切薄片（略冻硬更好切），加 1 勺生抽、少许盐抓匀。","炒香｜锅烧热多放一点油，下羊肉大火炒 1 分钟至变色出油。","下洋葱｜放洋葱丝炒 30 秒，炒到微微透明。","调味｜撒 1 勺孜然粉、半勺辣椒面，大火翻 20 秒，让香料裹住肉。","出锅｜尝咸淡补盐，趁热装盘，凉了膻味会回来。"],
+ tips:["孜然最后撒，早放会糊。","羊肉别炒老，变色就调味。"],
+ swap:"不吃辣去掉辣椒面；洋葱可换大葱。",video:"孜然羊肉"},
+
+{id:15,name:"蒜香鸡翅",cat:"荤菜",emoji:"🍗",cuisine:"家常菜",time:30,diff:2,spicy:0,
+ main:["鸡翅","独蒜"],opt:["小葱"],season:["生抽","蚝油","料酒","白糖","食用油"],
+ kcal:420,protein:28,fat:28,carb:8,fiber:0.5,goals:["高蛋白"],flags:[],
+ steps:["改刀｜鸡翅两面各划 2 刀到骨，方便入味也易熟。","腌制｜3 瓣蒜的蒜末 + 1 勺生抽 + 半勺蚝油 + 1 勺料酒 + 2 克糖，抓匀腌 20 分钟。","煎｜平底锅少油，鸡皮朝下中小火煎 5 分钟至金黄，翻面再 3 分钟。","焖｜倒入腌料汁 + 2 勺清水，盖盖小火焖 5 分钟。","收汁｜开盖大火收 2 分钟至汁黏，撒葱花。"],
+ tips:["划刀 + 腌 20 分钟，里面才入味。","先煎皮那面，皮才脆不粘锅。"],
+ swap:"鸡翅可换鸭翅，需多焖 8 分钟。",video:"蒜香鸡翅"},
+
+{id:16,name:"卤鸭翅",cat:"荤菜",emoji:"🦆",cuisine:"卤味",time:45,diff:2,spicy:1,
+ main:["鸭翅"],opt:["姜"],season:["八角","花椒","生抽","老抽","料酒","白糖","干辣椒"],
+ kcal:380,protein:26,fat:22,carb:6,fiber:0.3,goals:["高蛋白"],flags:[],
+ steps:["焯水｜鸭翅冷水下锅，加姜片、料酒煮开 3 分钟，捞出冲净。","炒香料｜少油下姜片、1 颗八角、20 粒花椒、2 个干辣椒，小火炒 30 秒出香。","调卤水｜加 3 勺生抽、半勺老抽、1 勺料酒、10 克白糖、800 毫升热水烧开。","卤｜下鸭翅小火 25 分钟，关火后在卤水里泡 20 分钟更入味。","收汁｜捞出可直接吃；想上色亮就大火收 2 分钟。"],
+ tips:["“泡”比“煮”更入味，别急着捞。","卤水过滤后可冷藏，下次再用。"],
+
+ swap:"鸭翅可换鸡翅、鸡脚，时间相应减少。",video:"卤鸭翅"},
+
+{id:17,name:"酱香鸡脚",cat:"荤菜",emoji:"🐾",cuisine:"卤味",time:50,diff:2,spicy:1,
+ main:["鸡脚"],opt:["姜"],season:["豆瓣酱","生抽","老抽","料酒","八角"],
+ kcal:340,protein:24,fat:18,carb:10,fiber:0.5,goals:["高蛋白"],flags:[],
+ steps:["处理｜鸡脚剪掉指甲，冷水下锅加料酒焯 3 分钟，捞出洗净。","炒酱｜少油小火下 1 勺豆瓣酱、姜片、八角，炒 20 秒出红油。","烧｜加 2 勺生抽、半勺老抽、1 勺料酒、热水没过鸡脚，烧开转小火 30 分钟。","收汁｜大火收 5 分钟至汤汁浓稠裹住鸡脚，出锅。"],
+ tips:["焯水后再烧，汤才不腥。","收汁到黏嘴才好吃。"],
+ swap:"加 1 勺辣椒面就是香辣版。",video:"酱香鸡脚"},
+
+{id:18,name:"爆炒鸡胗",cat:"荤菜",emoji:"🔥",cuisine:"川菜",time:15,diff:2,spicy:2,
+ main:["鸡胗","二荆条","渣海椒"],opt:["独蒜"],season:["生抽","料酒","食用油"],
+ kcal:300,protein:24,fat:14,carb:12,fiber:2,goals:["高蛋白"],flags:["内脏"],
+ steps:["改刀｜鸡胗片掉白筋，切 3 毫米薄片或打十字花刀，加 1 勺料酒、半勺生抽抓匀。","备料｜二荆条斜切段，蒜切片。","爆炒｜锅烧到冒烟倒油，下鸡胗大火爆炒 40 秒，卷曲变色立刻盛出。","炒配料｜底油下蒜片、二荆条、1 勺渣海椒，大火炒 30 秒。","合炒｜倒回鸡胗，淋半勺生抽，翻 10 秒出锅。"],
+ tips:["鸡胗全程大火，超过 1 分钟就发硬。","白筋要去干净，不然嚼不动。"],
+ swap:"渣海椒可用豆瓣酱代替；二荆条换薄皮椒。",video:"爆炒鸡胗"},
+
+{id:19,name:"卤鸭胗",cat:"荤菜",emoji:"🫒",cuisine:"卤味",time:50,diff:2,spicy:1,
+ main:["鸭胗"],opt:["姜"],season:["八角","花椒","生抽","老抽","料酒","干辣椒","白糖"],
+ kcal:260,protein:26,fat:8,carb:6,fiber:0.5,goals:["高蛋白","补铁"],flags:["内脏"],
+ steps:["清洗｜鸭胗撕掉表面油脂和白筋，用盐抓洗 1 分钟冲净。","焯水｜冷水下锅加料酒、姜片，煮开 3 分钟捞出。","卤水｜锅中加 800 毫升水、3 勺生抽、半勺老抽、1 勺料酒、八角、花椒、干辣椒、姜片烧开。","卤｜下鸭胗小火 30 分钟，关火泡 20 分钟。","切片｜捞出放凉后切薄片，淋一点卤汁上桌。"],
+ tips:["放凉再切，切面才平整。","泡一夜更入味。"],
+ swap:"鸭胗可换鸡胗，卤 20 分钟即可。",video:"卤鸭胗"},
+
+{id:20,name:"咸蛋黄焗南瓜",cat:"荤菜",emoji:"🎃",cuisine:"家常菜",time:20,diff:2,spicy:0,
+ main:["咸鸭蛋","老南瓜"],opt:["小葱"],season:["淀粉","食用油","盐"],
+ kcal:320,protein:8,fat:20,carb:24,fiber:2,goals:[],flags:["蛋"],
+ steps:["蒸南瓜｜老南瓜去皮切 1 厘米粗条，上锅蒸 4 分钟至半熟（能弯不易断），取出吸干表面水。","拍粉｜南瓜条薄薄拍一层淀粉。","煎｜平底锅少油中火煎 4 分钟至表面金黄。","炒蛋黄｜2 个咸鸭蛋取黄压碎，小火下锅炒到起细密泡泡（约 40 秒）。","裹匀｜倒入南瓜条快速翻拌，蛋黄裹满就关火。"],
+ tips:["南瓜先蒸半熟，煎的时候不碎。","蛋黄要炒到起泡才香，火大就糊。"],
+ swap:"老南瓜可换贝贝南瓜，口感更粉。",video:"咸蛋黄焗南瓜"},
+
+{id:21,name:"皮蛋擂辣椒",cat:"荤菜",emoji:"🌶️",cuisine:"湘菜",time:15,diff:1,spicy:2,
+ main:["皮蛋","薄皮椒"],opt:["独蒜"],season:["生抽","香醋","香油"],
+ kcal:200,protein:12,fat:12,carb:8,fiber:2,goals:[],flags:["蛋"],
+ steps:["煸椒｜薄皮椒整只下干锅，中火压着煸 3 分钟，表皮起虎皮斑、变软即可。","撕条｜取出稍凉，撕掉焦皮，用手撕成条（比刀切更入味）。","擂｜碗里放 2 个皮蛋（切块）、蒜末，用勺子捣压 20 下，让蛋黄和辣椒混在一起。","调味｜加 1 勺生抽、半勺香醋、几滴香油拌匀。","静置｜放 5 分钟再吃，味道更融合。"],
+ tips:["辣椒要煸软，生辣椒会呛。","皮蛋别捣太碎，留点口感。"],
+ swap:"薄皮椒可换螺丝椒；怕辣可把辣椒籽去干净。",video:"皮蛋擂辣椒"},
+
+{id:22,name:"茭白炒肉丝",cat:"荤菜",emoji:"🌾",cuisine:"江南菜",time:15,diff:2,spicy:0,
+ main:["茭白","精瘦肉"],opt:["小葱"],season:["生抽","淀粉","盐","食用油"],
+ kcal:280,protein:20,fat:16,carb:10,fiber:2,goals:["高蛋白"],flags:[],
+ steps:["切丝｜茭白剥壳切细丝，精瘦肉切丝加生抽、淀粉抓匀。","滑肉｜热油下肉丝炒 40 秒变色盛出。","炒茭白｜底油下茭白丝大火炒 2 分钟，炒到边缘微微透明。","合炒｜倒回肉丝，加 2 克盐、几滴生抽，翻 20 秒出锅。"],
+ tips:["茭白含草酸，炒前可焯水 20 秒。","茭白要炒透，生的有涩味。"],
+ swap:"茭白可换莴笋杆。",video:"茭白炒肉丝"},
+
+{id:23,name:"莴笋炒肉片",cat:"荤菜",emoji:"🥬",cuisine:"家常菜",time:15,diff:2,spicy:0,
+ main:["莴笋杆","精瘦肉"],opt:["独蒜"],season:["生抽","淀粉","盐","食用油"],
+ kcal:270,protein:19,fat:15,carb:9,fiber:2.2,goals:["高蛋白","高纤维"],flags:[],
+ steps:["切片｜莴笋杆去皮切菱形片，撒 1 克盐腌 3 分钟，出水后更脆；精瘦肉切片加生抽、淀粉抓匀。","滑肉｜热油下肉片炒 1 分钟至变色。","炒莴笋｜下蒜末、莴笋片大火炒 1 分半，仍保持翠绿。","调味｜加 2 克盐、几滴生抽，翻匀出锅，别炒到发黄。"],
+ tips:["莴笋炒久会软塌，全程大火快炒。","腌过的莴笋更脆，记得挤水。"],
+ swap:"莴笋杆可换茭白或黄瓜（黄瓜最后下）。",video:"莴笋炒肉片"},
+
+{id:24,name:"佛手瓜炒肉",cat:"荤菜",emoji:"🫑",cuisine:"家常菜",time:15,diff:2,spicy:0,
+ main:["八月瓜","五花肉"],opt:["独蒜"],season:["生抽","盐","食用油"],
+ kcal:310,protein:14,fat:22,carb:12,fiber:2,goals:[],flags:["猪肉"],
+ steps:["切配｜八月瓜（佛手瓜）去籽切薄片，五花肉切薄片。","煸肉｜少油下五花肉中火煸 2 分钟至出油微黄。","炒瓜｜下蒜末、佛手瓜片大火炒 2 分钟，瓜片变半透明。","调味｜加 1 勺生抽、2 克盐，翻匀出锅。"],
+ tips:["佛手瓜很吸味，配五花肉的油最香。","瓜片切薄，才炒得透。"],
+ swap:"八月瓜可换瓠瓜、长嫩南瓜。",video:"佛手瓜炒肉"},
+
+{id:25,name:"干锅散花菜",cat:"荤菜",emoji:"🥦",cuisine:"川菜",time:20,diff:2,spicy:2,
+ main:["散花菜","五花肉","二荆条"],opt:["独蒜"],season:["豆瓣酱","生抽","干辣椒","食用油"],
+ kcal:360,protein:14,fat:26,carb:14,fiber:3,goals:[],flags:["猪肉"],
+ steps:["处理｜散花菜掰小朵，盐水泡 5 分钟洗净，务必沥干水（带水下锅会溅油、也不香）。","煸菜｜空锅不放油，中火把花菜干煸 3 分钟至边缘微焦，盛出。","煸肉｜少油下五花肉片煸 2 分钟出油。","炒料｜小火下豆瓣酱、蒜片、干辣椒炒 20 秒出红油。","合炒｜倒回花菜、二荆条，加 1 勺生抽，大火翻 1 分钟出锅。"],
+ tips:["花菜先干煸，才有“干锅”的焦香。","花菜一定沥干，否则变成水煮。"],
+ swap:"散花菜可换圆包菜（手撕更入味）。",video:"干锅花菜"},
+
+{id:26,name:"番茄炒蛋",cat:"素菜",emoji:"🍅",cuisine:"家常菜",time:10,diff:1,spicy:0,
+ main:["西红柿","鸡蛋"],opt:["小葱"],season:["盐","白糖","食用油"],
+ kcal:220,protein:12,fat:14,carb:12,fiber:2,goals:["维C","高蛋白"],flags:["蛋"],
+ steps:["备料｜西红柿去蒂切块（想更出汁可先用开水烫 30 秒去皮），鸡蛋 2 个加 1 克盐打散。","炒蛋｜热锅多放一点油，倒蛋液，等边缘凝固再用铲推成大块，七成熟盛出。","炒番茄｜底油下番茄块，中火炒 2 分钟至出红汁，加 2 克糖（压酸味）。","合炒｜倒回鸡蛋，加 2 克盐，翻 30 秒让蛋吸汁，撒葱花出锅。"],
+ tips:["蛋七成熟就盛出，回锅后才嫩。","加一点糖不是为甜，是压番茄的酸。"],
+ swap:"西红柿可换普罗旺斯西红柿，汁更多、糖可少放。",video:"番茄炒蛋"},
+
+{id:27,name:"苦瓜炒蛋",cat:"素菜",emoji:"🥒",cuisine:"家常菜",time:10,diff:1,spicy:0,
+ main:["苦瓜","鸡蛋"],opt:["独蒜"],season:["盐","食用油"],
+ kcal:180,protein:11,fat:12,carb:8,fiber:2.5,goals:["维C"],flags:["蛋"],
+ steps:["处理｜苦瓜对半剖开，用勺子刮净白瓤（苦味主要在这），切薄片，撒 2 克盐腌 5 分钟挤水。","炒蛋｜鸡蛋 2 个打散，热油炒成大块盛出。","炒苦瓜｜底油下蒜末、苦瓜大火炒 1 分半至翠绿。","合炒｜倒回鸡蛋，加 1 克盐翻匀出锅。"],
+ tips:["白瓤刮干净 + 盐腌，苦味能减一半。","苦瓜别炒黄，翠绿才脆。"],
+ swap:"苦瓜可换黄瓜、丝瓜（丝瓜要先炒软）。",video:"苦瓜炒蛋"},
+
+{id:28,name:"蒸蛋羹",cat:"素菜",emoji:"🥚",cuisine:"家常菜",time:15,diff:1,spicy:0,
+ main:["鸡蛋"],opt:["小葱"],season:["生抽","香油","盐"],
+ kcal:140,protein:12,fat:9,carb:2,fiber:0,goals:["高蛋白"],flags:["蛋"],
+ steps:["打蛋｜2 个鸡蛋加 1 克盐打散，再加 1.5 倍温水（约 150 毫升，40℃左右），搅匀。","过筛｜用筛网过滤 1 遍，去掉泡沫和系带，这是表面光滑的关键。","蒸｜倒入碗中，盖盘子或保鲜膜（扎 2 个小孔），水开后中小火蒸 10 分钟。","判断｜轻晃碗、中心微微颤动就是刚好，取下盖子淋半勺生抽、几滴香油，撒葱花。"],
+ tips:["水温 40℃左右、比例 1:1.5，蛋羹最嫩。","一定盖住再蒸，不然表面全是蜂窝。"],
+ swap:"加 2 勺虾皮或 1 勺肉末，就是虾皮蒸蛋/肉末蒸蛋。",video:"蒸蛋羹"},
+
+{id:29,name:"平菇炒蛋",cat:"素菜",emoji:"🍄",cuisine:"家常菜",time:12,diff:1,spicy:0,
+ main:["平菇","鸡蛋"],opt:["小葱","独蒜"],season:["盐","食用油"],
+ kcal:190,protein:13,fat:12,carb:7,fiber:2,goals:["高蛋白"],flags:["蛋"],
+ steps:["处理｜平菇撕成小条，开水焯 30 秒捞出挤干水（去腥、防出水）。","炒蛋｜鸡蛋 2 个打散，热油炒成块盛出。","炒菇｜底油下蒜末、平菇大火炒 1 分钟至边缘微焦。","合炒｜倒回鸡蛋，加 2 克盐、撒葱花，翻 20 秒出锅。"],
+ tips:["平菇先焯水挤干，炒出来才香不出水。","菇类要炒到有点焦边，鲜味才出来。"],
+ swap:"平菇可换金针菇（焯 20 秒）、散花菜。",video:"平菇炒蛋"},
+/*__R1END__*/
+{id:30,name:"爆炒花甲",cat:"荤菜",emoji:"🐚",cuisine:"海鲜",time:15,diff:2,spicy:2,
+ main:["花甲","二荆条","独蒜"],opt:["小葱"],season:["豆瓣酱","生抽","料酒","食用油"],
+ kcal:220,protein:24,fat:8,carb:8,fiber:2,goals:["高蛋白","补铁"],flags:["海鲜"],
+ steps:["吐沙｜花甲放盆里加清水没过，加 1 勺盐、几滴油，静置 2 小时（中途换一次水）吐净沙。","焯水｜冷水下锅，水开后花甲一开口就捞，没开口的直接丢掉（是死的）。","炒料｜小火下 1 勺豆瓣酱、蒜末炒 20 秒出红油，转大火。","合炒｜下二荆条、花甲，淋 1 勺料酒、半勺生抽，翻 30 秒让每个壳都裹上汁。","出锅｜撒葱花立刻装盘，久炒肉会缩。"],
+ tips:["开口就熟，回锅不超过 1 分钟。","煮不开口的死花甲一定不要吃。"],
+ swap:"花甲可换基围虾（不用吐沙，炒 1 分钟）；不吃辣去掉豆瓣酱。",video:"爆炒花甲"},
+
+{id:31,name:"白灼基围虾",cat:"荤菜",emoji:"🦐",cuisine:"粤菜",time:10,diff:1,spicy:0,
+ main:["基围虾"],opt:["姜","小葱"],season:["生抽","香醋","香油","料酒"],
+ kcal:180,protein:26,fat:3,carb:2,fiber:0,goals:["高蛋白","低脂","补钙"],flags:["海鲜"],
+ steps:["处理｜剪掉虾枪虾须，牙签从背部第二节挑出虾线。","烧水｜锅中水加 3 片姜、2 根葱段、1 勺料酒，烧到大滚。","煮虾｜下虾，大火煮 90 秒，虾身弯曲变红立刻捞出。","冰镇｜过一遍冰水 30 秒，虾肉更弹。","蘸料｜2 勺生抽 + 姜末 + 半勺香醋 + 几滴香油。"],
+ tips:["一定水开再下虾，冷水煮会腥。","煮过头虾肉会散，90 秒足够。"],
+ swap:"基围虾可换青虾（多煮 30 秒）。",video:"白灼虾"},
+
+{id:32,name:"蒜蓉开背虾",cat:"荤菜",emoji:"🧄",cuisine:"粤菜",time:20,diff:2,spicy:0,
+ main:["基围虾","独蒜"],opt:["小葱"],season:["生抽","蚝油","白糖","食用油"],
+ kcal:210,protein:27,fat:7,carb:4,fiber:0.3,goals:["高蛋白"],flags:["海鲜"],
+ steps:["开背｜剪去虾须，从背部剪开至尾（不剪断），挑掉虾线，刀背轻拍让虾身平摊。","蒜蓉｜6 瓣蒜切末，一半用 3 勺热油浇香，另一半留生蒜，混合后加 1 勺生抽、半勺蚝油、2 克糖，拌成金银蒜。","铺盘｜虾摆盘，蒜蓉均匀铺在虾背上。","蒸｜水开后大火蒸 6 分钟，虾壳变红、蒜蓉冒泡即可。","泼油｜出锅撒葱花，浇 1 勺热油激香。"],
+ tips:["一半蒜炸香、一半生蒜，蒜味才有层次。","时间从水开算，6 分钟刚好。"],
+ swap:"基围虾可换龙虾尾（蒸 8 分钟）。",video:"蒜蓉开背虾"},
+
+{id:33,name:"油焖青虾",cat:"荤菜",emoji:"🍤",cuisine:"家常菜",time:15,diff:2,spicy:0,
+ main:["青虾"],opt:["姜","小葱"],season:["白糖","生抽","料酒","食用油"],
+ kcal:240,protein:25,fat:10,carb:6,fiber:0.2,goals:["高蛋白"],flags:["海鲜"],
+ steps:["处理｜青虾解冻后剪须、开背挑线，冲洗沥干。","煎｜锅中多放一点油，中大火把虾两面各煎 1 分钟至壳红亮。","焖｜加 2 片姜、1 勺料酒、1 勺生抽、5 克白糖、小半碗水，盖盖中小火焖 2 分钟。","收汁｜开盖大火收 1 分钟，汤汁变亮裹住虾，撒葱花。"],
+ tips:["糖不能少，“油焖”的亮色靠糖。","虾壳煎到发亮再焖，颜色才好看。"],
+ swap:"青虾可换基围虾；不吃甜把糖减到 3 克。",video:"油焖大虾"},
+
+{id:34,name:"蒜蓉蒸生蚝",cat:"荤菜",emoji:"🦪",cuisine:"海鲜",time:12,diff:1,spicy:0,
+ main:["生蚝","独蒜"],opt:["小葱"],season:["生抽","蚝油","食用油"],
+ kcal:160,protein:18,fat:6,carb:4,fiber:0.2,goals:["高蛋白","补铁"],flags:["海鲜"],
+ steps:["清洗｜生蚝用刷子刷净外壳，撬开取肉，冲掉碎壳。","蒜蓉｜5 瓣蒜的蒜末，加 1 勺生抽、半勺蚝油、2 克糖，浇 2 勺热油拌匀。","铺料｜蚝肉放回壳里，铺满蒜蓉。","蒸｜水开后大火蒸 5 分钟，蚝肉收缩变白即可，蒸久会老。","点缀｜撒葱花，喜欢再淋几滴热油。"],
+ tips:["蒸 5 分钟就够，蚝肉一缩就好了。","蒜蓉里加一点糖，鲜味更突出。"],
+ swap:"生蚝可换花甲（炒不用蒸）。",video:"蒜蓉生蚝"},
+
+{id:35,name:"麻辣黄辣丁",cat:"荤菜",emoji:"🐟",cuisine:"川菜",time:20,diff:2,spicy:3,
+ main:["黄辣丁","豆瓣酱","二荆条"],opt:["姜","独蒜","小葱"],season:["花椒","料酒","生抽","食用油"],
+ kcal:300,protein:26,fat:16,carb:8,fiber:0.5,goals:["高蛋白","补钙"],flags:["海鲜"],
+ steps:["处理｜黄辣丁去鳃去内脏洗净，两面各划 2 刀，用 1 勺料酒、2 克盐腌 10 分钟。","煎｜锅中放油，中火把鱼两面各煎 1 分钟定型，别急着翻。","炒料｜下姜蒜、1 勺豆瓣酱、1 小把花椒炒 20 秒出红油，加 300 毫升热水烧开。","烧鱼｜放入鱼，小火煮 8 分钟，中途用勺子舀汤淋鱼身，不要翻动。","收汁｜下二荆条段，大火收 1 分钟，撒葱花。"],
+ tips:["鱼身划刀再腌，去腥又入味。","烧的过程别翻鱼，晃锅就行。"],
+ swap:"黄辣丁可换草鱼块（多煮 3 分钟）。",video:"麻辣黄辣丁"},
+
+{id:36,name:"泡椒牛蛙",cat:"荤菜",emoji:"🐸",cuisine:"川菜",time:20,diff:2,spicy:3,
+ main:["牛蛙","二荆条","红小米辣椒"],opt:["独蒜","姜"],season:["料酒","生抽","淀粉","食用油"],
+ kcal:320,protein:28,fat:14,carb:8,fiber:1,goals:["高蛋白"],flags:["海鲜"],
+ steps:["处理｜牛蛙剁 3 厘米块，加 1 勺料酒、2 克盐、1 勺淀粉抓匀腌 10 分钟。","爆炒｜锅烧冒烟倒油，下牛蛙大火炒 1 分钟至表面变白，盛出。","炒料｜底油下姜蒜、二荆条、红小米辣椒，中火炒 40 秒出辣香。","回锅｜倒回牛蛙，加 1 勺生抽、小半碗水，盖盖焖 3 分钟。","收汁｜开盖大火收 30 秒，汤汁裹住蛙肉出锅。"],
+ tips:["牛蛙肉嫩，焖 3 分钟足够，久了会散。","先炒定型再焖，肉才不碎。"],
+ swap:"牛蛙可换鸡翅（需多焖 8 分钟）。",video:"泡椒牛蛙"},
+
+{id:37,name:"香煎带鱼",cat:"荤菜",emoji:"🐟",cuisine:"家常菜",time:18,diff:2,spicy:0,
+ main:["带鱼"],opt:["姜"],season:["盐","料酒","淀粉","食用油"],
+ kcal:280,protein:26,fat:18,carb:4,fiber:0.2,goals:["高蛋白","补钙"],flags:["海鲜"],
+ steps:["处理｜带鱼段解冻，剪去鳍，剖开去内脏，刮掉腹腔黑膜（腥味来源），切 6 厘米段。","腌｜加 1 勺料酒、3 克盐、姜丝腌 10 分钟，再用厨房纸把表面彻底擦干。","拍粉｜两面薄薄拍一层淀粉，抖掉多余的粉。","煎｜热锅热油，中火下鱼先煎 3 分钟不要动，晃锅鱼能滑动再翻面，另一面 2 分钟。","出锅｜两面金黄酥脆即可，趁热吃。"],
+ tips:["表面一定擦干再拍粉，才不粘锅。","下锅后 3 分钟内别翻，否则破皮。"],
+ swap:"带鱼可换多宝鱼（改清蒸）。",video:"香煎带鱼"},
+
+{id:38,name:"红烧草鱼块",cat:"荤菜",emoji:"🍲",cuisine:"家常菜",time:25,diff:3,spicy:1,
+ main:["草鱼","豆瓣酱"],opt:["姜","独蒜","小葱"],season:["生抽","老抽","料酒","白糖","食用油"],
+ kcal:320,protein:28,fat:18,carb:6,fiber:0.3,goals:["高蛋白"],flags:["海鲜"],
+ steps:["处理｜草鱼去鳞去内脏，切 4 厘米块，加料酒、姜片、2 克盐腌 15 分钟去腥。","煎｜锅中多油，中火把鱼块两面煎至金黄定型，盛出。","炒料｜底油下姜蒜、1 勺豆瓣酱炒 20 秒，加 1 勺生抽、半勺老抽、3 克糖、300 毫升热水。","烧｜放回鱼块，小火 8 分钟，中间晃锅防粘。","收汁｜大火收 2 分钟至汤汁浓稠，撒葱花。"],
+ tips:["鱼块煎定型再烧，才不散。","炖鱼别用铲子翻，晃锅最稳。"],
+ swap:"草鱼可换花鲢鱼、鲫鱼（鲫鱼整条烧）。",video:"红烧鱼块"},
+
+{id:39,name:"爆炒墨鱼仔",cat:"荤菜",emoji:"🦑",cuisine:"家常菜",time:12,diff:2,spicy:1,
+ main:["墨鱼仔","二荆条"],opt:["独蒜"],season:["生抽","蚝油","料酒","食用油"],
+ kcal:200,protein:22,fat:8,carb:8,fiber:1,goals:["高蛋白"],flags:["海鲜"],
+ steps:["处理｜墨鱼仔解冻，挤掉眼睛和嘴，抽出软骨，洗净沥干。","焯水｜水开后下墨鱼仔焯 10 秒立刻捞出（久了像橡皮）。","炒料｜大火下蒜片、二荆条炒 30 秒。","合炒｜下墨鱼仔，淋 1 勺料酒、半勺生抽、半勺蚝油，大火翻 20 秒出锅。"],
+ tips:["焯水 10 秒、回锅 20 秒，全程别超 1 分钟。","墨鱼仔整只炒，口感最好。"],
+ swap:"墨鱼仔可换红虾仁（不用焯水）。",video:"爆炒墨鱼仔"},
+
+{id:40,name:"虾仁滑蛋",cat:"荤菜",emoji:"🍳",cuisine:"粤菜",time:10,diff:1,spicy:0,
+ main:["红虾仁","鸡蛋"],opt:["小葱"],season:["盐","淀粉","料酒","食用油"],
+ kcal:230,protein:20,fat:14,carb:4,fiber:0.2,goals:["高蛋白","低脂"],flags:["海鲜","蛋"],
+ steps:["处理｜红虾仁解冻，厨房纸吸干水，加 1 克盐、半勺料酒、半勺淀粉抓匀腌 5 分钟。","打蛋｜3 个鸡蛋加 1 克盐、1 勺清水打散（加水蛋更嫩）。","滑虾｜热锅少油，中火把虾仁炒 40 秒变红盛出。","炒蛋｜转小火倒蛋液，等边缘凝固用铲子从外往内推，七成熟时倒回虾仁。","出锅｜关火用余温翻两下，蛋刚凝固就盛盘，撒葱花。"],
+ tips:["全程小火，蛋才嫩滑。","关火后余温继续加热，别炒到全熟。"],
+ swap:"红虾仁可换基围虾（去壳切段）。",video:"虾仁滑蛋"},
+
+{id:41,name:"干烧耗儿鱼",cat:"荤菜",emoji:"🐠",cuisine:"川菜",time:25,diff:3,spicy:2,
+ main:["马面鱼"],opt:["姜","独蒜","二荆条"],season:["豆瓣酱","生抽","白糖","料酒","食用油"],
+ kcal:300,protein:26,fat:16,carb:8,fiber:0.5,goals:["高蛋白"],flags:["海鲜"],
+ steps:["处理｜马面鱼（耗儿鱼）解冻，撕掉外皮，去头去内脏洗净，用料酒、盐腌 10 分钟。","煎｜中火多油，鱼两面各煎 2 分钟至金黄。","炒料｜下姜蒜、1 勺豆瓣酱炒出红油，加 1 勺生抽、3 克糖、200 毫升水。","烧｜放回鱼，小火 8 分钟，中途舀汁淋面。","收汁｜下二荆条段，大火把汁收干到“干烧”状态，撒葱花。"],
+ tips:["外皮撕掉，腥味少一半。","汁要收干，才叫干烧。"],
+ swap:"马面鱼可换带鱼段。",video:"干烧耗儿鱼"},
+
+{id:42,name:"蒜蓉龙虾尾",cat:"荤菜",emoji:"🦞",cuisine:"海鲜",time:15,diff:2,spicy:0,
+ main:["龙虾尾","独蒜"],opt:["小葱"],season:["蚝油","生抽","料酒","白糖","食用油"],
+ kcal:240,protein:26,fat:8,carb:6,fiber:0.3,goals:["高蛋白"],flags:["海鲜"],
+ steps:["处理｜龙虾尾解冻，剪开背壳取出虾线，冲洗沥干。","蒜蓉｜6 瓣蒜切末，一半用热油浇香、一半生蒜，加 1 勺蚝油、半勺生抽、2 克糖拌匀。","炒｜锅中少油，下龙虾尾大火炒 1 分钟至壳变红。","焖｜加 1 勺料酒、蒜蓉、小半碗水，盖盖中火焖 4 分钟。","收汁｜开盖大火收 1 分钟，撒葱花。"],
+ tips:["背壳剪开更入味，也好剥。","焖 4 分钟刚好，久了肉会老。"],
+ swap:"龙虾尾可换基围虾（焖 2 分钟）。",video:"蒜蓉龙虾尾"},
+
+{id:43,name:"清蒸多宝鱼",cat:"荤菜",emoji:"🐟",cuisine:"粤菜",time:18,diff:2,spicy:0,
+ main:["多宝鱼"],opt:["小葱","姜"],season:["生抽","料酒","白糖","食用油"],
+ kcal:260,protein:30,fat:12,carb:3,fiber:0,goals:["高蛋白","低脂"],flags:["海鲜"],
+ steps:["处理｜多宝鱼去鳃去内脏，刮净表面黏液，两面各划 3 刀，抹 1 勺料酒和 2 克盐。","垫盘｜盘底铺姜片葱段，放上鱼，鱼身再放几片姜。","蒸｜水开后大火蒸 8 分钟（1 斤左右），关火焖 1 分钟。","倒汤｜取出倒掉盘中腥水，拣掉姜葱。","淋油｜铺新葱丝，淋 2 勺生抽（可加少许糖和水烧开），浇 2 勺热油激香。"],
+ tips:["蒸出来的盘底水一定要倒掉，那是腥味。","1 斤鱼 8 分钟，每多 2 两加 1 分钟。"],
+ swap:"多宝鱼可换鲫鱼（蒸 10 分钟，刺多要小心）。",
+ video:"清蒸多宝鱼"},
+
+{id:44,name:"红烧花鲢鱼",cat:"荤菜",emoji:"🐟",cuisine:"家常菜",time:30,diff:3,spicy:1,
+ main:["花鲢鱼"],opt:["姜","独蒜","小葱"],season:["豆瓣酱","生抽","老抽","料酒","白糖","食用油"],
+ kcal:340,protein:28,fat:20,carb:6,fiber:0.3,goals:["高蛋白"],flags:["海鲜"],
+ steps:["处理｜花鲢鱼去鳞去内脏，切大块，加料酒、姜、盐腌 15 分钟。","煎｜中火多油，鱼块两面煎至金黄定型。","炒料｜下姜蒜、1 勺豆瓣酱炒 20 秒，加 1 勺生抽、半勺老抽、5 克糖、400 毫升热水。","烧｜放鱼块，小火 12 分钟，中途晃锅。","收汁｜大火收 3 分钟至汤汁浓稠，撒葱花。"],
+ tips:["花鲢鱼头别扔，煮汤特别鲜。","煎鱼锅一定要烧热，才不粘。"],
+ swap:"花鲢鱼可换草鱼；鱼头单独做汤也很好。",video:"红烧花鲢鱼"},
+{id:45,name:"酸辣土豆丝",cat:"素菜",emoji:"🥔",cuisine:"家常菜",time:10,diff:2,spicy:1,
+ main:["黄心土豆","干辣椒"],opt:["独蒜"],season:["香醋","花椒","盐","食用油"],
+ kcal:180,protein:4,fat:8,carb:26,fiber:2.5,goals:["高纤维"],flags:[],
+ steps:["切丝｜黄心土豆去皮切 2 毫米薄片，再切细丝，切得越匀越快熟。","泡水｜清水淘洗 2 遍再泡 5 分钟，洗掉表面淀粉，炒出来才脆不粘锅。","炝锅｜热锅冷油下 10 粒花椒、干辣椒段、蒜片，小火 10 秒出香，别炒糊。","炒｜转大火下土豆丝，快速翻炒 1 分钟。","调味｜沿锅边淋 1 勺香醋、加 2 克盐，翻 30 秒断生即出锅。"],
+ tips:["洗掉淀粉是“脆”的关键。","醋沿锅边淋，酸香才冲得出来。"],
+ swap:"喜欢软一点就多炒 1 分钟；不吃辣去掉干辣椒。",video:"酸辣土豆丝"},
+
+{id:46,name:"家常豆腐",cat:"素菜",emoji:"🧈",cuisine:"川菜",time:15,diff:2,spicy:1,
+ main:["老豆腐","薄皮椒"],opt:["独蒜","小葱"],season:["豆瓣酱","生抽","白糖","淀粉","食用油"],
+ kcal:260,protein:14,fat:18,carb:10,fiber:1.5,goals:["补钙"],flags:[],
+ steps:["切块｜老豆腐切 1 厘米厚三角片，用厨房纸吸干表面水。","煎｜平底锅少油，中火一面煎 3 分钟至金黄，翻面再 2 分钟。","炒料｜底油下蒜末、1 勺豆瓣酱炒 20 秒出红油，加半勺生抽、2 克糖、小半碗水烧开。","烧｜下豆腐和薄皮椒块，小火 3 分钟让豆腐吸汁。","勾芡｜水淀粉勾薄芡，撒葱花出锅。"],
+ tips:["豆腐吸干水再煎，不粘也不碎。","翻豆腐用铲子托着翻，别直接铲。"],
+ swap:"老豆腐可换厚豆干；薄皮椒换二荆条更辣。",video:"家常豆腐"},
+
+{id:47,name:"麻婆豆腐",cat:"素菜",emoji:"🌶️",cuisine:"川菜",time:15,diff:2,spicy:2,
+ main:["嫩豆腐","豆瓣酱"],opt:["独蒜","小葱"],season:["花椒","辣椒面","生抽","淀粉","食用油"],
+ kcal:240,protein:14,fat:16,carb:8,fiber:1,goals:["补钙"],flags:[],
+ steps:["处理｜嫩豆腐切 2 厘米块，放淡盐水里泡 5 分钟（不易碎、去豆腥）。","炒料｜小火下 1 勺豆瓣酱、蒜末炒 20 秒出红油，加 1 勺辣椒面、半勺生抽、200 毫升水烧开。","下豆腐｜用铲子托着把豆腐滑入锅中，小火煮 3 分钟，只晃锅不要翻。","勾芡｜分 2 次淋水淀粉，每次都晃匀，汁才裹得住豆腐。","出锅｜撒花椒粉、葱花，趁热吃。"],
+ tips:["豆腐用盐水泡过，煮的时候不碎。","花椒粉最后撒，麻味才冲。"],
+ swap:"嫩豆腐可换米豆腐，就是另一道川味小菜。",video:"麻婆豆腐"},
+
+{id:48,name:"手撕包菜",cat:"素菜",emoji:"🥬",cuisine:"家常菜",time:8,diff:1,spicy:1,
+ main:["圆包菜"],opt:["独蒜","干辣椒"],season:["香醋","生抽","盐","食用油"],
+ kcal:120,protein:3,fat:7,carb:12,fiber:2.5,goals:["高纤维","维C"],flags:[],
+ steps:["手撕｜圆包菜去硬芯，用手撕成大片（断面粗糙更挂汁），洗净甩干水。","炝锅｜热锅冷油下干辣椒段、蒜片，小火 10 秒。","炒｜大火下包菜快速翻炒 1 分半，边缘变软微透。","调味｜沿锅边淋 1 勺香醋、1 勺生抽、2 克盐，翻 20 秒出锅。"],
+ tips:["一定手撕，刀切的断面光滑不入味。","包菜要甩干水，否则炒成“煮包菜”。"],
+ swap:"圆包菜可换牛心白、云南大水白菜。",video:"手撕包菜"},
+
+{id:49,name:"蒜蓉油麦菜",cat:"素菜",emoji:"🌿",cuisine:"家常菜",time:6,diff:1,spicy:0,
+ main:["油麦菜","独蒜"],season:["盐","食用油"],opt:[],
+ kcal:90,protein:3,fat:6,carb:6,fiber:2,goals:["高纤维"],flags:[],
+ steps:["洗菜｜油麦菜掰开洗净，切 6 厘米段，菜梗和菜叶分开放。","爆香｜热锅冷油下蒜末，小火 15 秒出香。","炒梗｜先下菜梗大火炒 30 秒。","炒叶｜下菜叶，加 2 克盐，大火翻 30 秒，叶子刚塌就出锅。"],
+ tips:["梗叶分开下，成熟度才一致。","全程不超过 1 分钟，久了出水发黄。"],
+ swap:"油麦菜可换菠菜、木耳菜、菜心。",video:"蒜蓉油麦菜"},
+
+{id:50,name:"清炒菜心",cat:"素菜",emoji:"🥬",cuisine:"粤菜",time:8,diff:1,spicy:0,
+ main:["菜心"],opt:["独蒜"],season:["盐","食用油"],
+ kcal:80,protein:3,fat:5,carb:6,fiber:2,goals:["高纤维","维C","补钙"],flags:[],
+ steps:["处理｜菜心摘掉老叶，根部粗的划一刀，洗净沥干。","爆香｜热锅冷油下蒜末，小火 15 秒。","炒｜大火下菜心，先炒根部 30 秒再翻叶。","调味｜加 2 克盐、2 勺清水，盖盖焖 20 秒，开盖翻匀出锅。"],
+ tips:["加两勺水焖一下，菜梗才熟透不发黑。","锅要够热，炒出来才翠绿。"],
+ swap:"菜心可换上海青、小芥菜。",video:"清炒菜心"},
+
+{id:51,name:"白灼生菜",cat:"素菜",emoji:"🥗",cuisine:"粤菜",time:6,diff:1,spicy:0,
+ main:["本地生菜"],opt:["独蒜"],season:["生抽","蚝油","食用油"],
+ kcal:70,protein:2,fat:5,carb:4,fiber:1.5,goals:["低脂","高纤维"],flags:[],
+ steps:["烧水｜锅中水烧开，加几滴油和 1 克盐（保持翠绿）。","灼｜生菜下锅 15 秒立刻捞出，铺在盘里。","调汁｜小碗放 1 勺生抽、半勺蚝油、2 勺清水，锅里烧开。","淋｜汁淋在生菜上，撒蒜末，浇 1 勺热油激香。"],
+ tips:["15 秒就够，久了软塌。","水里加油盐，颜色才亮。"],
+ swap:"本地生菜可换上海青、油麦菜。",video:"白灼生菜"},
+
+{id:52,name:"醋溜绿豆芽",cat:"素菜",emoji:"🌱",cuisine:"家常菜",time:8,diff:1,spicy:1,
+ main:["绿豆芽"],opt:["干辣椒","独蒜"],season:["香醋","盐","食用油"],
+ kcal:90,protein:4,fat:5,carb:7,fiber:1.5,goals:["低脂"],flags:[],
+ steps:["处理｜绿豆芽洗净，掐掉老根，沥干水。","炝锅｜热锅冷油下干辣椒段、蒜片，小火 10 秒。","炒｜大火下豆芽，快速翻炒 40 秒。","调味｜沿锅边淋 1 勺香醋、加 2 克盐，翻 20 秒立刻出锅。"],
+ tips:["豆芽含水多，全程大火才脆。","醋分两次放：炒时一次、出锅前一次更香。"],
+ swap:"绿豆芽可换黄豆芽（多炒 30 秒）。",video:"醋溜豆芽"},
+
+{id:53,name:"干煸长豇豆",cat:"素菜",emoji:"🫛",cuisine:"川菜",time:15,diff:2,spicy:1,
+ main:["长豇豆"],opt:["干辣椒","独蒜"],season:["花椒","生抽","盐","食用油"],
+ kcal:150,protein:4,fat:9,carb:12,fiber:3,goals:["高纤维"],flags:[],
+ steps:["处理｜长豇豆掐掉两头，掰 6 厘米段，洗净后一定沥干。","干煸｜空锅不放油，中火煸 4 分钟，豆身起皱、表皮有虎皮斑。","炒料｜推到一边，加 2 勺油，下蒜末、干辣椒、10 粒花椒炒 20 秒。","合炒｜加 1 勺生抽、2 克盐，大火翻 1 分钟出锅。"],
+ tips:["先干煸再炒，才有干香不水。","豇豆必须炒熟透，生豇豆有毒。"],
+
+ swap:"长豇豆可换无筋豆、宽扁豆角（干煸时间加 1 分钟）。",video:"干煸豇豆"},
+
+{id:54,name:"凉拌黄瓜",cat:"凉菜",emoji:"🥒",cuisine:"凉菜",time:10,diff:1,spicy:1,
+ main:["黄瓜","独蒜"],season:["香醋","生抽","香油","白糖","辣椒面"],opt:["小香菜"],
+ kcal:80,protein:2,fat:4,carb:8,fiber:1.5,goals:["低脂","维C"],flags:[],
+ steps:["拍｜黄瓜洗净拍裂，切 3 厘米段（拍裂比切片更入味）。","腌｜撒 2 克盐抓匀腌 5 分钟，倒掉出的水。","调汁｜蒜末 + 2 勺生抽 + 1 勺香醋 + 2 克糖 + 几滴香油 + 半勺辣椒面拌匀。","拌｜倒入黄瓜翻匀，冷藏 5 分钟更爽口。"],
+ tips:["先腌出水，拌好才不会泡在汤里。","拍裂的断面才挂得住汁。"],
+ swap:"黄瓜可换长黄瓜、本地旱黄瓜；不吃辣去掉辣椒面。",video:"凉拌黄瓜"},
+
+{id:55,name:"蒜蓉蒸茄子",cat:"素菜",emoji:"🍆",cuisine:"家常菜",time:20,diff:1,spicy:0,
+ main:["长紫茄子","独蒜"],opt:["小葱"],season:["生抽","香油","盐"],
+ kcal:130,protein:4,fat:4,carb:18,fiber:3,goals:["低脂","高纤维"],flags:[],
+ steps:["切条｜长紫茄子切 1 厘米粗长条，皮朝下码在盘中。","蒸｜水开后大火蒸 8 分钟，筷子能轻松扎透即可。","倒水｜把盘里蒸出的水倒掉（会发涩）。","调汁｜蒜末 4 瓣 + 2 勺生抽 + 几滴香油 + 1 克盐，喜辣加半勺辣椒面。","淋｜汁浇在茄条上，撒葱花；想更香就浇 1 勺热油。"],
+ tips:["蒸出来的水一定倒掉，不然整盘发苦。","茄子皮朝下蒸，颜色不发黄。"],
+ swap:"长紫茄子可换娃娃菜（蒸 5 分钟）。",video:"蒜蓉蒸茄子"},
+
+{id:56,name:"西葫芦炒蛋",cat:"素菜",emoji:"🥚",cuisine:"家常菜",time:10,diff:1,spicy:0,
+ main:["长嫩南瓜","鸡蛋"],opt:["独蒜"],season:["盐","食用油"],
+ kcal:170,protein:11,fat:11,carb:8,fiber:1.5,goals:["维C"],flags:["蛋"],
+ steps:["切片｜长嫩南瓜（西葫芦）切 3 毫米半月片，太薄会出水。","炒蛋｜2 个鸡蛋打散，热油炒成大块盛出。","炒瓜｜底油下蒜末、瓜片大火炒 1 分半，边缘变透明。","合炒｜倒回鸡蛋，加 2 克盐，翻 20 秒出锅。"],
+ tips:["瓜片别切太薄，炒完才不软塌。","西葫芦会出水，盐最后放。"],
+ swap:"长嫩南瓜可换瓠瓜、佛手瓜。",video:"西葫芦炒蛋"},
+
+{id:57,name:"醋溜白菜",cat:"素菜",emoji:"🥬",cuisine:"家常菜",time:10,diff:2,spicy:1,
+ main:["云南大水白菜"],opt:["干辣椒","独蒜"],season:["香醋","生抽","白糖","淀粉","食用油"],
+ kcal:110,protein:3,fat:6,carb:10,fiber:2,goals:["维C","高纤维"],flags:[],
+ steps:["片｜白菜帮斜刀片成薄片，菜叶手撕，帮叶分开。","调汁｜1 勺香醋、半勺生抽、3 克糖、半勺淀粉、3 勺水搅匀。","炒帮｜热油下干辣椒、蒜片，先下菜帮大火炒 1 分钟。","炒叶｜下菜叶炒 30 秒，倒碗汁，翻 20 秒收浓出锅。"],
+ tips:["帮叶分开下，口感才对。","醋汁最后下，酸香才不挥发。"],
+ swap:"云南大水白菜可换牛心白、娃娃菜。",video:"醋溜白菜"},
+
+{id:58,name:"蒜蓉木耳菜",cat:"素菜",emoji:"🌿",cuisine:"家常菜",time:6,diff:1,spicy:0,
+ main:["木耳菜","独蒜"],opt:[],season:["盐","食用油"],
+ kcal:80,protein:3,fat:5,carb:5,fiber:2,goals:["高纤维","补钙"],flags:[],
+ steps:["洗｜木耳菜摘嫩叶，洗净沥干，叶片厚要甩干水。","爆香｜热油下蒜末，小火 15 秒出香。","炒｜大火下木耳菜，快速翻炒 40 秒，叶片变软出黏液即熟。","调味｜加 2 克盐翻匀，立刻出锅。"],
+ tips:["木耳菜自带黏液，全程大火快炒才不发黑。","蒜多放一点，能压住青味。"],
+ swap:"木耳菜可换菠菜、油麦菜。",video:"蒜蓉木耳菜"},
+
+{id:59,name:"炝炒竹筒白",cat:"素菜",emoji:"🥬",cuisine:"川菜",time:8,diff:1,spicy:1,
+ main:["竹筒白"],opt:["干辣椒","独蒜"],season:["花椒","盐","香醋","食用油"],
+ kcal:85,protein:3,fat:5,carb:6,fiber:2,goals:["维C"],flags:[],
+ steps:["处理｜竹筒白掰成大片，菜帮斜刀切薄，洗净甩干。","炝锅｜热油下干辣椒段、10 粒花椒、蒜片，小火 10 秒。","炒｜大火下菜帮炒 40 秒，再下菜叶炒 30 秒。","调味｜加 2 克盐、几滴香醋，翻匀出锅。"],
+ tips:["花椒别炒黑，10 秒就够。","菜帮先下，叶后下。"],
+ swap:"竹筒白可换上海青、牛心白。",video:"炝炒白菜"},
+
+{id:60,name:"蒜蓉娃娃菜",cat:"素菜",emoji:"🥬",cuisine:"家常菜",time:15,diff:1,spicy:0,
+ main:["娃娃菜","独蒜"],opt:["小葱"],season:["生抽","蚝油","食用油"],
+ kcal:100,protein:3,fat:5,carb:10,fiber:2,goals:["低脂","高纤维"],flags:[],
+ steps:["处理｜娃娃菜纵向切成 4 瓣，洗净码在盘中。","蒜蓉｜5 瓣蒜末，加 1 勺生抽、半勺蚝油、2 克糖、1 勺水拌匀。","蒸｜蒜蓉铺在菜上，水开后大火蒸 7 分钟。","泼油｜出锅撒葱花，浇 1 勺热油激香。"],
+ tips:["纵向切，蒸完不散。","蒜蓉带一点水，蒸的时候不会干。"],
+ swap:"娃娃菜可换娃娃菜心、上海青。",video:"蒜蓉娃娃菜"},
+
+{id:61,name:"酸辣魔芋",cat:"素菜",emoji:"🍜",cuisine:"川菜",time:15,diff:2,spicy:2,
+ main:["魔芋"],opt:["红小米辣椒","独蒜"],season:["豆瓣酱","香醋","生抽","食用油"],
+ kcal:100,protein:2,fat:4,carb:14,fiber:4,goals:["低脂","高纤维"],flags:[],
+ steps:["处理｜魔芋切 1 厘米宽条，开水焯 2 分钟（去碱味），捞出沥干。","炒料｜小火下 1 勺豆瓣酱、蒜末、红小米辣椒圈炒 20 秒。","炒｜下魔芋条大火炒 2 分钟，加半勺生抽。","调味｜沿锅边淋 1 勺香醋，翻 20 秒出锅，撒葱花。"],
+ tips:["魔芋一定先焯水，否则有碱味。","魔芋本身没味，全靠酱汁，醋不能少。"],
+ swap:"魔芋可换米豆腐（不用焯水）。",video:"酸辣魔芋"},
+
+{id:62,name:"凉拌米豆腐",cat:"凉菜",emoji:"🍮",cuisine:"川菜",time:10,diff:1,spicy:1,
+ main:["米豆腐"],opt:["小葱"],season:["生抽","香醋","辣椒面","香油"],
+ kcal:150,protein:3,fat:6,carb:20,fiber:1,goals:["低脂"],flags:[],
+ steps:["切｜米豆腐切 1.5 厘米方块，开水焯 30 秒捞出过凉（更紧实不散）。","调汁｜2 勺生抽、1 勺香醋、半勺辣椒面、几滴香油、少许盐拌匀。","拌｜汁浇在米豆腐上，撒葱花。","静置｜放 5 分钟入味再吃。"],
+ tips:["焯水后再拌，米豆腐不易碎。","米豆腐怕咸，盐要少放。"],
+ swap:"米豆腐可换嫩豆腐（不用焯）。",video:"凉拌米豆腐"},
+
+{id:63,name:"凉拌藕片",cat:"凉菜",emoji:"🪷",cuisine:"家常菜",time:15,diff:1,spicy:1,
+ main:["莲藕"],opt:["独蒜","小葱"],season:["香醋","白糖","辣椒面","香油","盐"],
+ kcal:130,protein:3,fat:4,carb:22,fiber:2.5,goals:["高纤维"],flags:[],
+ steps:["切片｜莲藕去皮切 2 毫米薄片，泡清水防氧化变黑。","焯水｜水开下藕片焯 2 分钟，捞出立刻过冰水（才脆）。","调汁｜蒜末 + 2 勺香醋 + 5 克糖 + 2 克盐 + 半勺辣椒面 + 几滴香油。","拌｜藕片沥干拌汁，撒葱花，冷藏 10 分钟更好吃。"],
+ tips:["焯完过冰水，脆感全靠这步。","藕片别焯久，2 分钟足够。"],
+ swap:"莲藕可换面藕（泡发后拌）。",video:"凉拌藕片"},
+
+{id:64,name:"凉拌干豆皮",cat:"凉菜",emoji:"🌾",cuisine:"家常菜",time:10,diff:1,spicy:1,
+ main:["干豆皮","黄瓜"],opt:["独蒜","小香菜"],season:["生抽","香醋","香油","辣椒面"],
+ kcal:160,protein:12,fat:8,carb:6,fiber:1.5,goals:["高蛋白","低脂"],flags:[],
+ steps:["泡发｜干豆皮用温水泡 15 分钟至软，切 1 厘米宽条。","焯水｜开水焯 1 分钟捞出过凉，挤干水。","配菜｜黄瓜切细丝铺底。","调汁｜蒜末 + 2 勺生抽 + 1 勺香醋 + 半勺辣椒面 + 几滴香油。","拌｜豆皮、黄瓜丝与汁拌匀，撒香菜。"],
+ tips:["泡软后再焯，豆皮才不硬。","挤干水再拌，不然汁会被稀释。"],
+ swap:"干豆皮可换厚豆干（切丝不用泡）。",video:"凉拌豆皮"},
+
+{id:65,name:"蒸贝贝南瓜",cat:"素菜",emoji:"🎃",cuisine:"家常菜",time:20,diff:1,spicy:0,
+ main:["贝贝南瓜"],season:["盐"],opt:[],
+ kcal:120,protein:3,fat:0.5,carb:28,fiber:4,goals:["高纤维","低脂"],flags:[],
+ steps:["处理｜贝贝南瓜洗净，去籽切 2 厘米厚月牙块，不用去皮。","蒸｜水开后上锅大火蒸 15 分钟。","判断｜筷子能轻松扎透、瓜肉发沙即可。","调味｜撒一点点盐提甜味，直接吃。"],
+ tips:["贝贝南瓜皮很薄，蒸好连皮吃。","蒸比煮甜，水汽不冲淡味道。"],
+ swap:"贝贝南瓜可换老南瓜（蒸 12 分钟）、红薯（蒸 20 分钟）。",video:"蒸贝贝南瓜"},
+
+{id:66,name:"蒜蓉菠菜",cat:"素菜",emoji:"🥬",cuisine:"家常菜",time:8,diff:1,spicy:0,
+ main:["菠菜","独蒜"],season:["盐","食用油"],opt:[],
+ kcal:90,protein:4,fat:6,carb:4,fiber:2,goals:["补铁","高纤维"],flags:[],
+ steps:["处理｜菠菜洗净切段，根和叶分开；菠菜含草酸，先开水焯 20 秒捞出挤水。","爆香｜热油下蒜末，小火 15 秒。","炒｜大火下菠菜，快速翻炒 30 秒。","调味｜加 2 克盐翻匀出锅。"],
+ tips:["菠菜一定焯水，去草酸口感也不涩。","焯完挤干水，炒的时候不出一盘汤。"],
+ swap:"菠菜可换木耳菜、油麦菜。",video:"蒜蓉菠菜"},
+
+{id:67,name:"凉拌金针菇",cat:"凉菜",emoji:"🍄",cuisine:"家常菜",time:12,diff:1,spicy:1,
+ main:["金针菇"],opt:["独蒜","小葱"],season:["生抽","香醋","辣椒面","香油"],
+ kcal:110,protein:4,fat:6,carb:10,fiber:2.5,goals:["低脂","高纤维"],flags:[],
+ steps:["处理｜金针菇切掉根部，撕成小把洗净。","焯水｜水开下锅焯 1 分钟，捞出过凉水，挤干。","调汁｜蒜末 + 2 勺生抽 + 1 勺香醋 + 半勺辣椒面 + 几滴香油。","拌｜浇汁拌匀，撒葱花，冷藏 5 分钟。"],
+ tips:["焯 1 分钟就够，久了会烂。","挤干水才挂得住汁。"],
+ swap:"金针菇可换平菇（撕条焯 40 秒）。",video:"凉拌金针菇"},
+
+{id:68,name:"清炒上海青",cat:"素菜",emoji:"🥬",cuisine:"家常菜",time:6,diff:1,spicy:0,
+ main:["上海青"],opt:["独蒜"],season:["盐","食用油"],
+ kcal:75,protein:3,fat:5,carb:5,fiber:2,goals:["低脂","补钙"],flags:[],
+ steps:["处理｜上海青（瓢儿白）掰开洗净，大棵的对半切。","爆香｜热油下蒜末，小火 15 秒。","炒｜大火下菜，先炒菜帮 30 秒，再翻叶 30 秒。","调味｜加 2 克盐、1 勺水，盖盖 15 秒出锅。"],
+ tips:["菜帮厚的先下锅。","加一勺水焖 15 秒，颜色更绿。"],
+ swap:"上海青可换菜心、小芥菜、竹筒白。",video:"清炒上海青"},
+
+{id:69,name:"凉拌面藕",cat:"凉菜",emoji:"🍥",cuisine:"家常菜",time:15,diff:1,spicy:1,
+ main:["面藕"],opt:["黄瓜","独蒜"],season:["生抽","香醋","辣椒面","香油","白糖"],
+ kcal:180,protein:5,fat:6,carb:28,fiber:1.5,goals:[],flags:[],
+ steps:["泡发｜面藕用温水泡 20 分钟至完全回软，反复冲洗去掉酸味。","焯水｜开水焯 1 分钟，捞出过凉挤干。","配菜｜黄瓜切丝。","调汁｜蒜末 + 2 勺生抽 + 1 勺香醋 + 3 克糖 + 半勺辣椒面 + 香油。","拌｜面藕、黄瓜丝与汁拌匀，静置 5 分钟。"],
+ tips:["面藕要多冲洗几遍，去酸味。","挤干水再拌，味道才浓。"],
+ swap:"面藕可换干豆皮、藕片。",video:"凉拌面藕"},
+
+/*__R3END__*/
+{id:70,name:"鲫鱼豆腐汤",cat:"汤羹",emoji:"🍲",cuisine:"家常菜",time:25,diff:2,spicy:0,
+ main:["鲫鱼","嫩豆腐"],opt:["姜","小葱"],season:["盐","料酒","白胡椒粉","食用油"],
+ kcal:260,protein:26,fat:14,carb:5,fiber:0.5,goals:["高蛋白","补钙","低脂"],flags:["海鲜"],
+ steps:["处理｜鲫鱼去鳞去鳃去内脏，刮净腹腔黑膜，两面各划 2 刀，用料酒、姜片腌 10 分钟。","煎鱼｜锅烧热放油，中火把鱼两面各煎 2 分钟至微黄——煎过再煮，汤才会奶白。","煮｜加 3 片姜、800 毫升开水（一定用开水），大火滚 10 分钟至汤色变白。","下豆腐｜嫩豆腐切块轻轻放入，转中火煮 5 分钟。","调味｜加 3 克盐、少许白胡椒粉，撒葱花；别放酱油，会毁掉汤色。"],
+ tips:["汤要白 = 鱼先煎 + 加开水 + 大火滚，三步缺一不可。","豆腐最后放，煮久会碎。"],
+ swap:"鲫鱼可换黄辣丁（汤更鲜，不用煎太久）。",video:"鲫鱼豆腐汤"},
+
+{id:71,name:"丝瓜蛋汤",cat:"汤羹",emoji:"🥣",cuisine:"家常菜",time:12,diff:1,spicy:0,
+ main:["长丝瓜","鸡蛋"],opt:["姜"],season:["盐","香油"],
+ kcal:130,protein:9,fat:8,carb:6,fiber:1.5,goals:["维C","低脂"],flags:["蛋"],
+ steps:["处理｜长丝瓜去皮切滚刀块；鸡蛋 2 个打散。","炒瓜｜少油下姜丝、丝瓜，中火炒 1 分钟至边缘变软。","煮｜加 600 毫升水烧开，煮 2 分钟至丝瓜透明。","淋蛋｜转小火，蛋液转圈淋入，等 5 秒再推成蛋花。","调味｜加 3 克盐、几滴香油出锅。"],
+ tips:["蛋液淋入后别立刻搅，蛋花才成片。","丝瓜先炒再煮，汤更甜。"],
+ swap:"长丝瓜可换苹果丝瓜、瓠瓜。",video:"丝瓜蛋汤"},
+
+{id:72,name:"番茄鸡蛋汤",cat:"汤羹",emoji:"🍅",cuisine:"家常菜",time:10,diff:1,spicy:0,
+ main:["西红柿","鸡蛋"],opt:["小葱"],season:["盐","淀粉","香油"],
+ kcal:110,protein:7,fat:6,carb:7,fiber:1.5,goals:["维C","低脂"],flags:["蛋"],
+ steps:["炒番茄｜西红柿切块，少油中火炒 2 分钟至出红汁。","煮｜加 600 毫升水烧开，煮 2 分钟。","勾芡｜淋入 1 勺水淀粉，汤稍稠蛋花才飘得住。","淋蛋｜转小火，蛋液转圈淋入，5 秒后轻推。","调味｜加 3 克盐、几滴香油，撒葱花。"],
+ tips:["番茄一定炒出汁再加水，汤才红。","勾薄芡是蛋花漂亮的关键。"],
+ swap:"西红柿可换普罗旺斯西红柿，汁更多。",video:"番茄蛋汤"},
+
+{id:73,name:"冬瓜丸子汤",cat:"汤羹",emoji:"🍡",cuisine:"家常菜",time:25,diff:2,spicy:0,
+ main:["冬瓜","猪前夹肉"],opt:["姜","小葱"],season:["淀粉","盐","白胡椒粉"],
+ kcal:220,protein:18,fat:12,carb:6,fiber:1.5,goals:["高蛋白","低脂"],flags:["猪肉"],
+ steps:["调馅｜猪前夹肉剁成馅，加姜末、3 克盐、1 勺淀粉、2 勺清水，顺一个方向搅 2 分钟至黏手。","搓丸｜手心沾水，搓成 2 厘米小丸子。","煮丸｜水微开（别大滚）下丸子，煮 5 分钟浮起。","下冬瓜｜冬瓜去皮切薄片下锅，煮 8 分钟至透明。","调味｜加盐、白胡椒粉，撒葱花。"],
+ tips:["水微开下丸子，大滚会把丸子冲散。","肉馅搅上劲，丸子才弹。"],
+ swap:"冬瓜可换米冬瓜、瓠瓜。",video:"冬瓜丸子汤"},
+
+{id:74,name:"玉米排骨汤",cat:"汤羹",emoji:"🌽",cuisine:"家常菜",time:60,diff:1,spicy:0,
+ main:["排骨","黄甜玉米"],opt:["姜"],season:["盐","料酒"],
+ kcal:320,protein:24,fat:18,carb:20,fiber:2.5,goals:["高蛋白","补钙"],flags:["猪肉"],
+ steps:["焯水｜排骨冷水下锅，加姜片、料酒，煮开撇沫 3 分钟，捞出冲净。","煮｜排骨加 1000 毫升水和 2 片姜，大火烧开转小火 30 分钟。","下玉米｜黄甜玉米切 4 厘米段下锅，再煮 20 分钟。","调味｜只加 3 克盐，关火焖 5 分钟再盛。"],
+ tips:["玉米后放，煮太久会失去甜味。","这锅汤只放盐，不要酱油。"],
+ swap:"黄甜玉米可换老南瓜（最后 15 分钟放）。",video:"玉米排骨汤"},
+
+{id:75,name:"莲藕排骨汤",cat:"汤羹",emoji:"🪷",cuisine:"湖北菜",time:70,diff:1,spicy:0,
+ main:["莲藕","排骨"],opt:["姜"],season:["盐","料酒"],
+ kcal:340,protein:24,fat:16,carb:26,fiber:3.5,goals:["高蛋白","补铁"],flags:["猪肉"],
+ steps:["焯水｜排骨冷水下锅加姜片、料酒，煮开撇沫 3 分钟捞出。","处理藕｜莲藕去皮切滚刀块，泡清水防变黑。","炖｜排骨加 1000 毫升水、姜片，大火烧开转小火 30 分钟。","下藕｜放藕块再炖 25 分钟，至藕用筷子能扎透。","调味｜加 3 克盐，焖 5 分钟出锅。"],
+ tips:["选七孔藕（偏粉糯）更适合炖汤。","盐最后放，肉才不紧。"],
+ swap:"莲藕可换面藕（最后 10 分钟放）。",video:"莲藕排骨汤"},
+
+{id:76,name:"蛋炒饭",cat:"主食",emoji:"🍚",cuisine:"家常菜",time:10,diff:1,spicy:0,
+ main:["大米","鸡蛋"],opt:["小葱"],season:["盐","食用油","生抽"],
+ kcal:380,protein:12,fat:14,carb:52,fiber:0.8,goals:[],flags:["蛋"],
+ steps:["备饭｜用隔夜冷饭最好，先用铲子把饭粒压散，不要成团。","炒蛋｜2 个鸡蛋打散，热油下锅炒到半凝固。","下饭｜立刻倒入米饭，大火快速翻炒 2 分钟，让蛋裹住饭粒。","调味｜加 2 克盐、几滴生抽，撒葱花，翻 20 秒出锅。"],
+ tips:["隔夜饭水分少，才炒得粒粒分明。","蛋半凝固就下饭，蛋香才裹得住。"],
+ swap:"有剩菜（如青椒肉丝）可一起炒，就是浇头炒饭。",video:"蛋炒饭"},
+
+{id:77,name:"皮蛋瘦肉粥",cat:"主食",emoji:"🥣",cuisine:"粤菜",time:45,diff:2,spicy:0,
+ main:["皮蛋","精瘦肉","大米"],opt:["姜","小葱"],season:["盐","白胡椒粉"],
+ kcal:280,protein:18,fat:6,carb:40,fiber:0.8,goals:["高蛋白"],flags:["蛋"],
+ steps:["煮粥｜大米 80 克洗净，加 800 毫升水，大火烧开转小火 25 分钟，中途每 5 分钟搅一次防糊底。","腌肉｜精瘦肉切细丝，加少许盐、1 勺淀粉抓匀。","下料｜皮蛋切丁，和肉丝、姜丝一起下锅，煮 5 分钟。","调味｜加 3 克盐、少许白胡椒粉，撒葱花，搅匀关火。"],
+ tips:["粥要一直搅，不然底部会糊。","肉丝最后 5 分钟下，才嫩。"],
+ swap:"皮蛋可换咸鸭蛋（不用另加盐）。",video:"皮蛋瘦肉粥"},
+
+{id:78,name:"南瓜粥",cat:"主食",emoji:"🎃",cuisine:"家常菜",time:35,diff:1,spicy:0,
+ main:["老南瓜","大米"],season:["白糖"],opt:[],
+ kcal:200,protein:4,fat:1,carb:42,fiber:2.5,goals:["高纤维","低脂"],flags:[],
+ steps:["切南瓜｜老南瓜去皮切小块，蒸 10 分钟压成泥（也可直接下锅煮烂）。","煮粥｜大米 60 克加 700 毫升水，烧开转小火 20 分钟。","合煮｜下南瓜泥，再煮 5 分钟，边煮边搅。","调味｜喜甜加 5 克糖，不加也够甜。"],
+ tips:["南瓜先蒸成泥，粥才细腻。","南瓜本身很甜，糖可以不放。"],
+ swap:"老南瓜可换红薯、贝贝南瓜。",video:"南瓜粥"},
+
+{id:79,name:"西红柿鸡蛋面",cat:"主食",emoji:"🍜",cuisine:"家常菜",time:15,diff:1,spicy:0,
+ main:["挂面","西红柿","鸡蛋"],opt:["小葱"],season:["盐","食用油"],
+ kcal:420,protein:16,fat:12,carb:62,fiber:2.5,goals:["维C"],flags:["蛋"],
+ steps:["炒汤｜西红柿切块，少油炒 2 分钟出汁，加 500 毫升水烧开。","煮面｜另起一锅水烧开，下挂面煮 6-8 分钟（按包装时间），捞出。","淋蛋｜汤转小火，蛋液转圈淋入成蛋花。","合｜面捞进汤里，加 3 克盐，煮 30 秒，撒葱花。"],
+ tips:["面另锅煮，汤才不糊。","番茄炒出汁，汤底才够味。"],
+ swap:"挂面可换面粉手擀面；加一勺辣椒油变酸辣面。",video:"西红柿鸡蛋面"},
+
+{id:80,name:"葱油拌面",cat:"主食",emoji:"🍝",cuisine:"上海菜",time:15,diff:2,spicy:0,
+ main:["挂面","小葱"],opt:[],season:["生抽","老抽","白糖","食用油"],
+ kcal:460,protein:10,fat:20,carb:62,fiber:1.2,goals:[],flags:[],
+ steps:["熬葱油｜小葱 8 根切 5 厘米段，冷油下锅（油没过葱），小火熬 8 分钟至葱段焦黄发脆，捞出葱段。","调酱｜葱油里加 2 勺生抽、半勺老抽、5 克白糖，小火熬 30 秒至糖化开，关火。","煮面｜挂面煮至刚熟，捞出沥干（留 2 勺面汤）。","拌｜面里加 2 勺葱油酱、1 勺面汤，拌匀，撒上炸葱段。"],
+ tips:["冷油下葱、小火慢熬，葱香才不苦。","留一勺面汤，酱才拌得开。"],
+ swap:"挂面可换细面；加一勺猪油更香。",video:"葱油拌面"},
+
+{id:81,name:"鸡蛋饼",cat:"主食",emoji:"🥞",cuisine:"家常菜",time:15,diff:1,spicy:0,
+ main:["面粉","鸡蛋","小葱"],season:["盐","食用油"],opt:[],
+ kcal:300,protein:12,fat:10,carb:38,fiber:1,goals:["高蛋白"],flags:["蛋"],
+ steps:["调糊｜面粉 100 克 + 2 个鸡蛋 + 150 毫升水 + 2 克盐，搅到无颗粒（酸奶稠度），静置 5 分钟。","加葱｜小葱切碎拌入面糊。","摊｜平底锅刷薄油，中小火烧热，倒一勺面糊转锅摊开。","煎｜小火 2 分钟至边缘翘起、底面金黄，翻面再 1 分钟。","出锅｜卷起切段，趁热吃。"],
+ tips:["面糊静置 5 分钟，饼才不破。","火一定小，厚了会夹生。"],
+ swap:"加胡萝卜丝更营养；面糊里加一勺玉米面更香。",video:"鸡蛋饼"},
+
+{id:82,name:"卤鸭掌",cat:"荤菜",emoji:"🦆",cuisine:"卤味",time:50,diff:2,spicy:1,
+ main:["鸭掌"],opt:["姜"],season:["八角","花椒","生抽","老抽","料酒","白糖","干辣椒"],
+ kcal:280,protein:24,fat:14,carb:6,fiber:0.3,goals:["高蛋白"],flags:[],
+ steps:["处理｜鸭掌剪掉指甲，用盐搓洗 1 分钟，冲净。","焯水｜冷水下锅加姜片、料酒，煮开 3 分钟捞出。","调卤水｜锅中加 800 毫升水、3 勺生抽、半勺老抽、1 勺料酒、八角、花椒、干辣椒、10 克糖烧开。","卤｜下鸭掌小火 30 分钟，关火泡 20 分钟。","收汁｜捞出即可；想更亮就大火收 2 分钟。"],
+ tips:["鸭掌胶质多，泡在卤水里过夜更好吃。","卤水别扔，过滤后冷藏能再用 2 次。"],
+ swap:"鸭掌可换鸡脚（卤 25 分钟）。",video:"卤鸭掌"},
+
+{id:83,name:"红薯粥",cat:"主食",emoji:"🍠",cuisine:"家常菜",time:35,diff:1,spicy:0,
+ main:["红薯","大米"],opt:[],season:["白糖"],
+ kcal:220,protein:4,fat:1,carb:46,fiber:3,goals:["高纤维","低脂"],flags:[],
+ steps:["处理｜红薯（蜜薯）去皮切 2 厘米小块。","煮粥｜大米 70 克洗净加 700 毫升水，烧开转小火 20 分钟，中途搅 2 次防糊底。","下红薯｜放红薯块再煮 10 分钟，至红薯一压就碎。","调味｜喜欢甜可加 5 克糖，红薯本身够甜也可以不加。"],
+ tips:["红薯切小块才和米同时熟。","粥要搅，红薯含糖高容易糊底。"],
+ swap:"红薯可换老南瓜、贝贝南瓜。",video:"红薯粥"},
+
+/*__R4END__*/
+];
+/* =========================================================
+   三、引擎
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const KEY = "smartmenu_v5";
+const DEFAULT = {
+  sel: [],
+  prefs: {taste:1, people:2, time:40, avoid:[], goals:[]},
+  fav: [], hist: [], vclick:{}, vview:{}, profile:"",
+  ai: {base:"https://api.deepseek.com/v1", model:"deepseek-chat", visionModel:"", key:"", provider:"deepseek"}
+};
+function loadState(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){
+      const o = JSON.parse(raw);
+      return Object.assign(JSON.parse(JSON.stringify(DEFAULT)), o);
+    }
+  }catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULT));
+}
+let S = loadState();
+S.ai = Object.assign({visionModel:""}, S.ai || {});
+let SEL = new Set(S.sel || []);
+function save(){ try{ S.sel=[...SEL]; localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+/* ---------- 食材索引 ---------- */
+const ING_MAP = {}, ALIAS = {};
+ING.forEach(g => g.items.forEach(it => {
+  const key = typeof it === "string" ? it.split(/[（(]/)[0].trim() : it.k;
+  const label = typeof it === "string" ? it : it.k;
+  ING_MAP[key] = {key, label, d: it.d || "", cat: g.key, icon: g.icon};
+  ALIAS[key] = key;
+  if(typeof it === "string" && /（|\(/.test(it)){
+    const m = it.match(/[（(]([^）)]+)[）)]/);
+    if(m) m[1].split("/").forEach(a => ALIAS[a.trim()] = key);
+  }
+}));
+const ALIAS_KEYS = Object.keys(ALIAS).sort((a,b)=>b.length-a.length);
+const SYN = {"虾":"基围虾","大虾":"基围虾","豆腐":"嫩豆腐","土豆":"黄心土豆","番茄":"西红柿","青菜":"上海青","辣椒":"薄皮椒","鱼":"草鱼","肉":"猪肉","米":"大米","面":"挂面","面条":"挂面","蒜":"独蒜","葱":"小葱"};
+function resolveIng(txt){
+  const t = String(txt).replace(/\s/g,"");
+  if(!t) return null;
+  if(ALIAS[t]) return ALIAS[t];
+  if(SYN[t] && ING_MAP[SYN[t]]) return SYN[t];
+  for(const a of ALIAS_KEYS){ if(t.includes(a)) return ALIAS[a]; }
+  return null;
+}
+const labelOf = k => (ING_MAP[k] ? ING_MAP[k].label : k);
+const stars = n => `<span class="st on">${"★".repeat(n)}</span><span class="st">${"☆".repeat(Math.max(0,5-n))}</span>`;
+/* 同族替代：用户只有“猪肉”时，五花肉/瘦肉/前夹肉的菜也能匹配 */
+const SUBST = {
+  "五花肉":["猪肉"], "精瘦肉":["猪肉"], "猪前夹肉":["猪肉"], "前排":["猪肉"],
+  "排骨":["前排","猪肉"],
+  "鸡蛋":["鸭蛋"],
+  "基围虾":["青虾"], "青虾":["基围虾"],
+  "绿豆芽":["黄豆芽"],
+  "长豇豆":["无筋豆","宽扁豆角"],
+  "云南大水白菜":["农家小水白菜","牛心白"],
+  "八月瓜":["瓠瓜"],
+  "菜心":["小芥菜"], "上海青":["小芥菜"],
+  "红小米辣椒":["红美人椒"], "青小米椒":["红美人椒"],
+  "小葱":["大葱"], "独蒜":["小蒜"]
+};
+function hasIng(k){
+  if(SEL.has(k)) return true;
+  const alt = SUBST[k];
+  return !!alt && alt.some(a=>SEL.has(a));
+}
+function subFor(k){
+  const alt = SUBST[k];
+  return alt ? (alt.find(a=>SEL.has(a)) || null) : null;
+}
+
+/* ---------- 展示工具 ---------- */
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(t._tm); t._tm = setTimeout(()=>t.classList.remove("on"), 2600);
+}
+const IMG_MAP = {};
+const picOf = id => IMG_MAP[id] || ("img/real/" + id + ".jpg");
+const catClass = c => c==="荤菜" ? "t-meat" : c==="汤羹" ? "t-soup" : c==="主食" ? "t-staple" : "t-veg";
+const recentDays = id => {
+  const h = [...S.hist].reverse().find(x=>x.id===id);
+  if(!h) return 99;
+  return Math.floor((Date.now() - new Date(h.t + "T12:00:00").getTime()) / 86400000);
+};
+const nameOf = id => (RECIPES.find(d=>d.id===id) || {}).name || "某道菜";
+
+/* ---------- 食材面板 ---------- */
+function chipHtml(it){
+  const key = typeof it === "string" ? it.split(/[（(]/)[0].trim() : it.k;
+  const label = typeof it === "string" ? it : it.k;
+  const d = (typeof it === "object" && it.d) ? `<span class="d">${it.d}</span>` : "";
+  return `<button class="chip${SEL.has(key)?" on":""}" data-k="${key}">${label}${d}</button>`;
+}
+function renderGroups(){
+  const q = $("#ingSearch").value.trim();
+  let html = "";
+  ING.forEach(g=>{
+    const items = g.items.filter(it=>{
+      const label = typeof it === "string" ? it : it.k;
+      const d = (typeof it === "object" && it.d) ? it.d : "";
+      return !q || label.includes(q) || d.includes(q);
+    });
+    if(!items.length) return;
+    const selected = items.filter(it=>SEL.has(typeof it==="string"?it.split(/[（(]/)[0].trim():it.k)).length;
+    html += `<div class="group" data-g="${g.key}">
+      <div class="group-head">
+        <div class="g-name">${g.icon} ${g.name}</div>
+        <div class="g-meta"><b>${selected}</b>/${items.length} 已选 <span class="arrow">▾</span></div>
+      </div>
+      <div class="chips">${items.map(chipHtml).join("")}</div>
+    </div>`;
+  });
+  $("#ingGroups").innerHTML = html || `<div class="empty-state">没找到这个食材，试试用别名（三线肉、虎皮椒、瓢儿白）或直接在下面输入</div>`;
+}
+function renderSelected(){
+  $("#selCount").textContent = SEL.size;
+  const box = $("#selTags");
+  if(!SEL.size){ box.innerHTML = `<span class="empty">还没有选食材</span>`; return; }
+  box.innerHTML = [...SEL].map(k=>`<span class="sel-tag" data-k="${k}">${labelOf(k)} ×</span>`).join("");
+  $$(".sel-tag").forEach(t=>t.onclick=()=>{
+    SEL.delete(t.dataset.k); afterSelChange();
+  });
+}
+function afterSelChange(){
+  save(); renderGroups(); renderSelected(); refreshDishCount();
+  if(currentPlan) generatePlan();
+  else renderPlanEmptyHint();
+}
+
+/* ---------- 偏好面板 ---------- */
+function syncPrefs(){
+  $$("#prefTaste button").forEach(b=>b.classList.toggle("on", +b.dataset.v===S.prefs.taste));
+  $$("#prefPeople button").forEach(b=>b.classList.toggle("on", +b.dataset.v===S.prefs.people));
+  $$("#prefTime button").forEach(b=>b.classList.toggle("on", +b.dataset.v===S.prefs.time));
+  $$("#prefAvoid input").forEach(i=>i.checked = S.prefs.avoid.includes(i.value));
+  $$("#prefGoal input").forEach(i=>i.checked = S.prefs.goals.includes(i.value));
+}
+function bindPrefs(){
+  $$("#prefTaste button").forEach(b=>b.onclick=()=>{
+    S.prefs.taste = +b.dataset.v;
+    S.tasteCount = S.tasteCount || [0,0,0,0];
+    S.tasteCount[S.prefs.taste]++;
+    syncPrefs(); save();
+    if(currentPlan) generatePlan();
+  });
+  $$("#prefPeople button").forEach(b=>b.onclick=()=>{ S.prefs.people=+b.dataset.v; syncPrefs(); save(); if(currentPlan) generatePlan(); });
+  $$("#prefTime button").forEach(b=>b.onclick=()=>{ S.prefs.time=+b.dataset.v; syncPrefs(); save(); if(currentPlan) generatePlan(); });
+  $("#prefAvoid").addEventListener("change", ()=>{
+    S.prefs.avoid = $$("#prefAvoid input:checked").map(i=>i.value);
+    save(); if(currentPlan) generatePlan(); if($("#tabDish").classList.contains("on")) renderDishes();
+  });
+  $("#prefGoal").addEventListener("change", ()=>{
+    S.prefs.goals = $$("#prefGoal input:checked").map(i=>i.value);
+    save(); if(currentPlan) generatePlan();
+  });
+}
+
+/* ---------- 匹配打分 ---------- */
+function hardOK(d){
+  const a = S.prefs.avoid;
+  if(a.includes("辣") && d.spicy > 0) return false;
+  if(a.includes("内脏") && d.flags.includes("内脏")) return false;
+  if(a.includes("牛羊肉") && d.flags.includes("牛羊肉")) return false;
+  if(a.includes("海鲜") && d.flags.includes("海鲜")) return false;
+  if(a.includes("蛋") && d.flags.includes("蛋")) return false;
+  if(a.includes("香菜") && (d.main.includes("小香菜") || d.opt.includes("小香菜"))) return false;
+  return true;
+}
+function scored(){
+  return RECIPES.map(d=>{
+    const matched = d.main.filter(m=>hasIng(m));
+    const missing = d.main.filter(m=>!hasIng(m));
+    let score;
+    if(missing.length === 0) score = 58 + Math.min(24, matched.length * 8);
+    else score = Math.round(58 * matched.length / d.main.length) - missing.length * 6;
+    if(d.spicy > 0 && S.prefs.taste > 0) score += Math.max(0, (3 - Math.abs(d.spicy - S.prefs.taste)) * 2);
+    d.goals.forEach(g=>{ if(S.prefs.goals.includes(g)) score += 5; });
+    if(recentDays(d.id) <= 5) score -= 18;
+    if(S.fav.includes(d.id)) score += 5;
+    if(d.time > S.prefs.time) score -= 10;
+    return {...d, matched, missing, score: Math.max(0, Math.min(99, Math.round(score))), ok: hardOK(d)};
+  });
+}
+
+/* ---------- 生成今日方案 ---------- */
+let currentPlan = null, planSeed = 0, lastPlanIds = [];
+function generatePlan(fresh){
+  planSeed++;
+  if(!SEL.size){ renderPlanEmptyHint(); return; }
+  const all = scored().filter(d=>d.ok);
+  const allWide = all.filter(d=>d.missing.length <= 1 && d.matched.length >= 1 && d.time <= S.prefs.time + 10);
+  let pool = all.filter(d=>d.missing.length === 0 && d.time <= S.prefs.time);
+  let level = 0;
+  if(pool.length < 3){
+    pool = all.filter(d=>d.missing.length <= 1 && d.matched.length >= 1 && d.time <= S.prefs.time + 10); level = 1;
+  }
+  if(pool.length < 2){
+    pool = all.filter(d=>d.missing.length <= 1 && d.matched.length >= 1); level = 2;
+  }
+  if(!pool.length){ renderPlanFail(); return; }
+  const used = new Set();
+  /* 同主料只做降权，不做硬过滤：食材少的时候仍能凑齐一桌 */
+  function rank(arr){
+    return arr.map(d=>({
+      d,
+      s: d.score - d.main.filter(m=>used.has(m)).length * 14 - (d.time > S.prefs.time ? 4 : 0)
+    })).sort((a,b)=>b.s - a.s).map(x=>x.d);
+  }
+  function choose(cats, wide){
+    let arr = pool.filter(d=>cats.includes(d.cat));
+    if(!arr.length && wide) arr = wide.filter(d=>cats.includes(d.cat));
+    if(!arr.length) return null;
+    arr = rank(arr);
+    const pick = fresh ? (arr.find(d=>!lastPlanIds.includes(d.id)) || arr[0]) : arr[0];
+    pick.main.forEach(m=>used.add(m));
+    return pick;
+  }
+  const plan = [];
+  const a = choose(["荤菜"]);
+  if(a) plan.push(a);
+  const b = choose(["素菜","凉菜"], allWide);
+  if(b) plan.push(b);
+  const c = choose(["汤羹","主食"]);
+  if(c) plan.push(c);
+  if(plan.length < 2){
+    const extra = choose(["荤菜","素菜","凉菜","主食","汤羹"]);
+    if(extra) plan.push(extra);
+  }
+  currentPlan = plan;
+  lastPlanIds = plan.map(d=>d.id);
+  renderPlan(plan, level, pool.length);
+}
+const COMBOS = [
+  {t:"一人食 · 15 分钟", d:"下班太累，一碗面解决", ings:["鸡蛋","西红柿","挂面"],
+   keys:["鸡蛋","西红柿","挂面"]},
+  {t:"两人下饭 · 30 分钟", d:"一荤一素一汤，配米饭", ings:["猪肉","薄皮椒","蒜苗","嫩豆腐","小葱"],
+   keys:["猪肉","薄皮椒","蒜苗","嫩豆腐","小葱"]},
+  {t:"清淡减脂 · 25 分钟", d:"鱼汤 + 两道绿叶菜", ings:["鲫鱼","嫩豆腐","菠菜","菜心"],
+   keys:["鲫鱼","嫩豆腐","菠菜","菜心"]},
+  {t:"海鲜一顿 · 20 分钟", d:"爆炒花甲 + 冬瓜", ings:["花甲","冬瓜","二荆条","独蒜"],
+   keys:["花甲","冬瓜","二荆条","独蒜"]}
+];
+function renderPlanEmptyHint(){
+  currentPlan = null;
+  $("#planTitle").textContent = "先勾几样食材，我来配菜";
+  $("#planTime").textContent = "等待选择";
+  $("#planBox").innerHTML = `<div class="empty-state" style="grid-column:1/-1">左边勾选食材 → 点「生成今天的菜谱」<br>我会按 一荤 + 一素 + 一汤 配好，并算好营养和总用时</div>
+    <div class="combo-wrap" style="grid-column:1/-1">
+      <div class="combo-title">没头绪？点一个现成组合试试</div>
+      <div class="combo-grid">${COMBOS.map((c,i)=>`<button class="combo" data-i="${i}">
+        <b>${c.t}</b><span>${c.d}</span>
+        <em>${c.ings.join(" · ")}</em>
+      </button>`).join("")}</div>
+    </div>`;
+  $$("#planBox .combo").forEach(b=>b.onclick=()=>{
+    const c = COMBOS[+b.dataset.i];
+    SEL.clear();
+    c.keys.forEach(k=>SEL.add(k));
+    afterSelChange();
+    generatePlan(true);
+    switchTab("plan");
+    toast("已按「" + c.t + "」配好一桌");
+  });
+  $("#planWhy").style.display = "none";
+  $("#planNutri").style.display = "none";
+  $("#unusedBox").style.display = "none";
+}
+function renderPlanFail(){
+  currentPlan = null;
+  $("#planTitle").textContent = "现有食材还凑不齐一道菜";
+  $("#planBox").innerHTML = `<div class="empty-state">这些食材暂时没有完整菜谱。<br>再勾 1-2 样常见的（鸡蛋、土豆、豆腐、小葱）就能出方案，<br>或者切到「AI 厨房」让模型根据现有食材自由发挥。</div>`;
+  $("#planWhy").style.display = "none"; $("#planNutri").style.display = "none";
+}
+function renderPlan(plan, level, poolSize){
+  const total = plan.reduce((s,d)=>s+d.time, 0);
+  const t = {kcal:0,protein:0,fat:0,carb:0,fiber:0};
+  plan.forEach(d=>["kcal","protein","fat","carb","fiber"].forEach(k=>t[k]+=d[k]));
+  $("#planTime").textContent = `${S.prefs.people} 人份 · 合计约 ${total} 分钟`;
+  $("#planTitle").textContent = `${plan.length} 道菜 · ${total} 分钟能上桌`;
+
+  $("#planBox").innerHTML = plan.map((d,i)=>{
+    const role = d.cat === "汤羹" ? "汤" : d.cat === "主食" ? "主食" : d.cat === "凉菜" ? "凉菜" : d.cat === "素菜" ? "素菜" : "主菜";
+    const lack = d.missing.length ? `<span style="color:#c9483f">缺 ${d.missing.map(labelOf).join("、")}</span>` : `<span style="color:#2f7d5f">食材齐全</span>`;
+    return `<div class="meal" data-id="${d.id}">
+      <div class="thumb ${catClass(d.cat)}">
+        <span class="meal-role">${role}</span>
+        <div class="em">${d.emoji}</div><div class="tl">${d.cuisine}</div>
+        <img class="pic" src="${picOf(d.id)}" alt="${esc(d.name)}" loading="lazy"
+             onerror="if(!this.dataset.f){this.dataset.f=1;this.src='img/gen/${d.id}.jpg'}else{this.remove()}">
+        <div class="shade"></div>
+      </div>
+      <div class="meal-body">
+        <div class="meal-name">${d.name}</div>
+        <div class="meal-meta">${stars(d.diff)} · ${d.time} 分钟 · ${d.kcal} 千卡</div>
+        <div class="meal-why">${lack}${d.goals.length ? " · " + d.goals.slice(0,2).join("/") : ""}</div>
+      </div>
+    </div>`;
+  }).join("");
+  $$("#planBox .meal").forEach(m=>m.onclick=()=>openDetail(+m.dataset.id));
+
+  /* 搭配理由 */
+  const selTxt = [...SEL].slice(0,8).map(labelOf).join("、") + (SEL.size>8 ? " 等" : "");
+  const order = plan.slice().sort((a,b)=>b.time - a.time);
+  const longest = order[0];
+  const why = [];
+  const gapDishes = plan.filter(d=>d.missing.length);
+  why.push(`按你选的 ${SEL.size} 样食材（${selTxt}），${gapDishes.length
+    ? `${plan.length - gapDishes.length} 道的主料全齐，${gapDishes.length} 道各差 1 样（${gapDishes.map(d=>d.missing.map(labelOf).join("、")).join("；")}），卡片上已标红，顺路补上就能开火`
+    : "这桌菜的主料全部齐备，不用再买菜"}。`);
+  const hasMeat = plan.some(d=>d.cat==="荤菜"), hasVeg = plan.some(d=>d.cat==="素菜"||d.cat==="凉菜"), hasStaple = plan.some(d=>d.cat==="主食"), hasSoup = plan.some(d=>d.cat==="汤羹");
+  why.push(`结构：${plan.map(d=>d.name).join(" + ")}，${hasMeat && hasVeg ? "一荤一素，不重口" : hasMeat ? (hasSoup ? "有荤有汤，适合下饭" : "两道都是荤菜，建议再加一道绿叶菜") : hasVeg ? (hasSoup ? "一素一汤，清爽不腻" : "以素为主，清爽不腻") : "主食为主"}${hasSoup?"，另配一道汤":""}${hasStaple?"，主食也齐":""}。`);
+  why.push(`营养合计约 ${Math.round(t.kcal)} 千卡、蛋白质 ${t.protein.toFixed(1)} 克、膳食纤维 ${t.fiber.toFixed(1)} 克，${t.protein/(S.prefs.people*25) >= 1 ? "蛋白质够量" : "蛋白质偏少，可加一个蛋或豆制品"}。`);
+  why.push(`下厨顺序建议：先做${longest.name}（${longest.time} 分钟，${longest.cat==="汤羹"?"炖上就不用管":"费时间"}），中间备菜，最后 10 分钟炒${plan.filter(d=>d.time<=15).map(d=>d.name).join("、")||"快手菜"}。`);
+  if(level >= 2) why.push(`你选的时间较短，方案里有超时的菜：可以先做最费时的那道，或把两道菜分两顿做。`);
+  if(plan.length === 1) why.push(`可选的食材偏少，这一次只配出一道。再补 1-2 样常见的（鸡蛋、豆腐、土豆、青菜）就能凑成一桌。`);
+  if(S.prefs.avoid.length) why.push(`已自动过滤你勾选的忌口：${S.prefs.avoid.join("、")}。`);
+  if(S.prefs.taste === 0) why.push(`口味按「清淡」匹配，辣椒类菜品已降权。`);
+  $("#planWhy").style.display = "block";
+  $("#planWhy").innerHTML = `<h4>为什么这样搭</h4><ul>${why.map(w=>`<li>${w}</li>`).join("")}</ul>`;
+
+  /* 营养条 */
+  const ppl = S.prefs.people;
+  const g = gradeOf(t, plan);
+  const rows = [
+    {n:"热量", v:Math.round(t.kcal), tg:ppl*450, unit:"千卡", cls:""},
+    {n:"蛋白质", v:t.protein.toFixed(1), tg:ppl*25, unit:"克", cls:""},
+    {n:"脂肪", v:t.fat.toFixed(1), tg:ppl*35, unit:"克", cls:"gold"},
+    {n:"碳水", v:t.carb.toFixed(1), tg:ppl*70, unit:"克", cls:"blue"},
+    {n:"膳食纤维", v:t.fiber.toFixed(1), tg:8, unit:"克", cls:""}
+  ];
+  $("#planNutri").style.display = "block";
+  $("#planNutri").innerHTML = `<div class="nutri-head">
+      <h4>营养搭配（估算）</h4>
+      <div><span class="grade">${g.label} ${g.score} 分</span> <span class="nutri-total">按 ${ppl} 人份</span></div>
+    </div>
+    <div class="nutri-grid">${rows.map(r=>{
+      const pct = Math.min(100, Math.round(r.v/r.tg*100));
+      return `<div class="nrow"><div class="lab"><span>${r.n}</span><b>${r.v} <span style="font-weight:400;color:#93a09a">/ ${r.tg} ${r.unit}</span></b></div>
+        <div class="bar ${r.cls}"><i style="width:${pct}%"></i></div></div>`;
+    }).join("")}</div>
+    <div class="note">数值按常见家常做法估算，目标值参考成人一餐的粗略区间，仅作搭配参考。</div>`;
+
+  /* 未覆盖食材 */
+  const usedAny = k => RECIPES.some(d=>d.main.includes(k) || d.main.some(m=>SUBST[m] && SUBST[m].includes(k)));
+  const unused = [...SEL].filter(k=>!usedAny(k));
+  if(unused.length){
+    $("#unusedBox").style.display = "block";
+    $("#unusedBox").innerHTML = `<b>这几样暂时没有菜谱：</b>${unused.slice(0,10).map(labelOf).join("、")}${unused.length>10?" 等":""}。可以切到「AI 厨房」让它按你的食材自由生成，或把它们当配菜加进上面的菜里。`;
+  }else{
+    $("#unusedBox").style.display = "none";
+  }
+}
+function gradeOf(t, plan){
+  const ppl = S.prefs.people;
+  let score = 55;
+  score += Math.min(18, (t.protein/(ppl*25)) * 18);
+  score += Math.min(12, (t.fiber/8) * 12);
+  if(plan.some(d=>d.cat==="素菜" || d.cat==="凉菜")) score += 8;
+  if(t.kcal < ppl*350) score -= 8;
+  if(t.kcal > ppl*700) score -= 10;
+  if(t.fat > ppl*40) score -= 8;
+  score = Math.max(30, Math.min(98, Math.round(score)));
+  const label = score>=85 ? "很均衡" : score>=70 ? "基本均衡" : score>=55 ? "偏单一" : "偏油或偏少";
+  return {score, label};
+}
+
+/* ---------- 菜品库 ---------- */
+let catFilter = "all", sortMode = "match", onlyRel = true;
+function refreshDishCount(){
+  $("#tabDishNum").textContent = RECIPES.length;
+}
+function renderDishes(){
+  const all = scored();
+  const q = $("#dishSearch").value.trim();
+  const cats = [["all","全部"],["荤菜","荤菜"],["素菜","素菜"],["凉菜","凉菜"],["汤羹","汤羹"],["主食","主食"]];
+  $("#catFilter").innerHTML = cats.map(([k,n])=>`<button class="fbtn${catFilter===k?" on":""}" data-c="${k}">${n}</button>`).join("");
+  $$("#catFilter .fbtn").forEach(b=>b.onclick=()=>{ catFilter=b.dataset.c; renderDishes(); });
+
+  let list = all.filter(d=>catFilter==="all" || d.cat===catFilter);
+  if(onlyRel && SEL.size && !q) list = list.filter(d=>d.matched.length > 0);
+  if(q) list = list.filter(d=>d.name.includes(q) || d.main.some(m=>labelOf(m).includes(q)) || d.season.some(s=>s.includes(q)));
+  if(sortMode==="match") list.sort((a,b)=>b.score-a.score);
+  else if(sortMode==="time") list.sort((a,b)=>a.time-b.time);
+  else if(sortMode==="diff") list.sort((a,b)=>a.diff-b.diff);
+  else list.sort((a,b)=>a.kcal-b.kcal);
+
+  if(!list.length){
+    $("#dishGrid").innerHTML = `<div class="empty-state">没有符合条件的菜，换个筛选或搜别的食材试试</div>`;
+    return;
+  }
+  $("#dishGrid").innerHTML = list.map(d=>{
+    const badge = d.missing.length===0
+      ? `<span class="match-badge">✓ 食材齐全</span>`
+      : d.matched.length ? `<span class="match-badge warn">缺 ${d.missing.length} 样</span>`
+      : `<span class="match-badge warn">未选主料</span>`;
+    const fav = S.fav.includes(d.id);
+    const clicks = S.vclick[d.id] || 0;
+    return `<div class="dish" data-id="${d.id}">
+      <div class="thumb ${catClass(d.cat)}">
+        ${badge}
+        ${clicks ? `<span class="vid-badge">▶ ${clicks}</span>` : ""}
+        <div class="em">${d.emoji}</div><div class="tl">${d.cuisine}</div>
+        <img class="pic" src="${picOf(d.id)}" alt="${esc(d.name)}" loading="lazy"
+             onerror="if(!this.dataset.f){this.dataset.f=1;this.src='img/gen/${d.id}.jpg'}else{this.remove()}">
+        <div class="shade"></div>
+      </div>
+      <div class="dish-body">
+        <div class="dish-name"><span>${d.name}</span><span class="star${fav?" on":""}" data-fav="${d.id}">${fav?"★":"☆"}</span></div>
+        <div class="dish-meta"><span>${stars(d.diff)}</span><span>${d.time} 分钟</span><span>${d.kcal} 千卡</span></div>
+        <div>${d.goals.slice(0,2).map(g=>`<span class="dish-tag g">${g}</span>`).join("")}${d.spicy>2?`<span class="dish-tag r">较辣</span>`:""}<span class="dish-tag">${d.cat}</span></div>
+      </div>
+    </div>`;
+  }).join("");
+
+  $$("#dishGrid .dish").forEach(card=>{
+    const id = +card.dataset.id;
+    S.vview[id] = (S.vview[id]||0) + 1;
+    card.onclick = e=>{
+      if(e.target.dataset.fav){ toggleFav(+e.target.dataset.fav); return; }
+      openDetail(id);
+    };
+  });
+  $$("#dishGrid .star").forEach(st=>st.onclick=e=>{ e.stopPropagation(); toggleFav(+st.dataset.fav); });
+  save();
+}
+function toggleFav(id){
+  if(S.fav.includes(id)) S.fav = S.fav.filter(x=>x!==id);
+  else S.fav.push(id);
+  save(); renderDishes(); toast(S.fav.includes(id) ? "已加入收藏" : "已取消收藏");
+}
+
+/* ---------- 用量估算 ---------- */
+const GRAM_BASE = {
+  "猪肉":200,"精瘦肉":200,"五花肉":250,"猪前夹肉":200,"前排":400,"排骨":400,"牛肉":250,"羊肉":250,
+  "鸡胗":180,"鸭胗":180,"花甲":500,"基围虾":250,"青虾":250,"黄辣丁":300,"牛蛙":300,"带鱼":300,
+  "草鱼":400,"墨鱼仔":250,"红虾仁":200,"马面鱼":300,"龙虾尾":300,"花鲢鱼":400,"生蚝":200,
+  "薄皮椒":150,"螺丝椒":150,"二荆条":100,"青小米椒":60,"红小米辣椒":60,"红美人椒":60,"绿豆芽":150,"黄豆芽":150,
+  "魔芋":250,"米豆腐":250,"菜心":250,"芋儿":300,"西红柿":300,"无筋豆":200,"黄瓜":200,"黄心土豆":300,
+  "圆包菜":300,"嫩豆腐":400,"小芥菜":250,"厚豆干":200,"瓠瓜":300,"农家小水白菜":300,"上海青":250,
+  "油麦菜":250,"老豆腐":350,"红皮洋葱":200,"本地生菜":250,"散花菜":350,"云南大水白菜":300,"木耳菜":250,
+  "莲藕":300,"金针菇":200,"黄甜玉米":300,"红薯":300,"贝贝南瓜":400,"长丝瓜":300,"冬瓜":300,"宽扁豆角":250,
+  "老南瓜":400,"八月瓜":300,"长紫茄子":300,"苦瓜":250,"平菇":250,"娃娃菜":300,"菠菜":250,"蒜苗":100,
+  "莴笋杆":300,"长豇豆":250,"胡萝卜":150,"茭白":300,"竹筒白":300,"长嫩南瓜":300,"干豆皮":100,"牛心白":300,"面藕":150
+};
+function qtyOf(k){
+  const p = S.prefs.people, mul = p/2;
+  if(["鸡蛋","鸭蛋","咸鸭蛋","皮蛋"].includes(k)) return `${Math.max(2, Math.round(2*mul))} 个`;
+  if(["鸡翅","鸭翅"].includes(k)) return `${Math.max(4, Math.round(6*mul))} 个`;
+  if(["鸡脚","鸭掌"].includes(k)) return `${Math.max(5, Math.round(8*mul))} 个`;
+  if(k === "鲫鱼" || k === "多宝鱼") return "1 条";
+  const im = ING_MAP[k];
+  if(im && im.cat === "pantry"){
+    if(k === "大米") return `${Math.round(80*p)}g`;
+    if(k === "挂面" || k === "面粉") return `${Math.round(100*p)}g`;
+    return "适量";
+  }
+  const base = GRAM_BASE[k] || 250;
+  return `${Math.max(30, Math.round(base*mul/10)*10)}g`;
+}
+
+/* ---------- 菜品详情 ---------- */
+function openDetail(id){
+  const d = scored().find(x=>x.id===id);
+  if(!d) return;
+  const lack = d.missing;
+  const mHtml = d.main.map(m=>{
+    const miss = !hasIng(m);
+    const sub = subFor(m);
+    return `<div class="ing-item${miss?" lack":""}"><span>${miss?"✕ ":"✓ "}${labelOf(m)}${sub?`<span style="color:#8a5a1e;font-size:11px">（用${labelOf(sub)}代替）</span>`:""}</span><span class="q">${qtyOf(m)}</span></div>`;
+  }).join("");
+  const oHtml = d.opt.length ? d.opt.map(m=>`<div class="ing-item"><span>${labelOf(m)}（可选）</span><span class="q">${qtyOf(m)}</span></div>`).join("") : "";
+  const sHtml = d.season.map(s=>`<div class="ing-item"><span>${s}</span><span class="q">适量</span></div>`).join("");
+  const stepHtml = d.steps.map((s,i)=>{
+    const parts = s.split("｜");
+    return `<li><span class="idx">${i+1}</span><span><b>${parts[0]}</b>　${parts[1]||""}</span></li>`;
+  }).join("");
+  const fav = S.fav.includes(d.id);
+  const clicks = S.vclick[d.id] || 0;
+  const html = `
+  <div class="detail-hero">
+    <div class="detail-icon ${catClass(d.cat)}">${d.emoji}
+      <img src="${picOf(d.id)}" alt="${esc(d.name)}"
+           onerror="if(!this.dataset.f){this.dataset.f=1;this.src='img/gen/${d.id}.jpg'}else{this.remove()}">
+    </div>
+    <div>
+      <h2>${d.name}</h2>
+      <div class="detail-sub">
+        <span>${d.cuisine}</span><span>${d.cat}</span>
+        <span class="hl">难度 ${stars(d.diff)}</span>
+        <span class="hl">${d.time} 分钟</span>
+        <span>约 ${Math.round(d.kcal*S.prefs.people/2)} 千卡 / ${S.prefs.people} 人份</span>
+        ${d.spicy?`<span class="hl">辣度 ${["","微辣","中辣","重辣"][d.spicy]}</span>`:""}
+      </div>
+    </div>
+  </div>
+  <div class="detail-body">
+    <div class="dsec">
+      <h4><span class="num">1</span>食材清单（${S.prefs.people} 人份）${lack.length?`<span style="color:#c9483f;font-weight:400;font-size:11.5px">· 还缺 ${lack.length} 样</span>`:`<span style="color:#2f7d5f;font-weight:400;font-size:11.5px">· 全部现成</span>`}</h4>
+      <div class="ing-grid">${mHtml}${oHtml}${sHtml}</div>
+      <div class="note">用量按人数估算，第一次做建议照着来，熟练后按口味调整。</div>
+    </div>
+    <div class="dsec">
+      <h4><span class="num">2</span>制作步骤</h4>
+      <ol class="steps-list">${stepHtml}</ol>
+    </div>
+    <div class="dsec">
+      <h4><span class="num">3</span>新手容易翻车的点</h4>
+      <div class="tips-box">${d.tips.map(t=>`<div>${t}</div>`).join("")}</div>
+      <div class="note">替换建议：${d.swap}</div>
+    </div>
+    <div class="dsec">
+      <h4><span class="num">4</span>营养（估算 / 全份）</h4>
+      <div class="nutri-mini">
+        <span>热量 <b>${d.kcal}</b> 千卡</span>
+        <span>蛋白质 <b>${d.protein}</b> 克</span>
+        <span>脂肪 <b>${d.fat}</b> 克</span>
+        <span>碳水 <b>${d.carb}</b> 克</span>
+        <span>膳食纤维 <b>${d.fiber}</b> 克</span>
+        ${d.goals.map(g=>`<span style="background:#eaf5ef;color:#2f7d5f">${g}</span>`).join("")}
+      </div>
+    </div>
+    <div class="dsec">
+      <h4><span class="num">5</span>视频步骤</h4>
+      <div class="video-box">
+        <button class="vb bili" data-v="bili">▶ B 站看这道菜</button>
+        <button class="vb dy" data-v="dy">▶ 抖音看这道菜</button>
+      </div>
+      <div class="note">搜索词「${d.video} 做法」· 本站不存视频，点击会记入下面的视频点击率 · 这道菜已被点击 ${clicks} 次</div>
+    </div>
+    <div class="detail-actions">
+      <button class="btn ghost small" id="dFav">${fav?"★ 已收藏":"☆ 收藏"}</button>
+      <button class="btn primary small" id="dCook">✓ 我今天做了这道</button>
+      <button class="btn ghost small" id="dAsk">🤖 让 AI 细讲</button>
+      <button class="btn ghost small" id="dClose">关闭</button>
+    </div>
+  </div>`;
+  openModal(html);
+  const m = $("#modal");
+  m.querySelector("#dClose").onclick = closeModal;
+  m.querySelector("#dFav").onclick = ()=>{ toggleFav(d.id); closeModal(); openDetail(d.id); };
+  m.querySelector("#dCook").onclick = ()=>{ recordCook(d.id); closeModal(); };
+  m.querySelector("#dAsk").onclick = ()=>{
+    closeModal();
+    switchTab("ai");
+    $("#chatInput").value = `细讲一下${d.name}怎么做，重点说火候和容易失败的地方`;
+    sendChat();
+  };
+  m.querySelectorAll(".vb").forEach(b=>b.onclick=()=>{
+    S.vclick[d.id] = (S.vclick[d.id]||0) + 1; save();
+    const q = encodeURIComponent(d.video + " 做法");
+    const url = b.dataset.v === "bili" ? `https://search.bilibili.com/all?keyword=${q}` : `https://www.douyin.com/search/${q}`;
+    window.open(url, "_blank");
+    b.textContent = "▶ 已打开（本站记 1 次点击）";
+    toast("已记录一次视频点击，正在打开站内搜索");
+  });
+}
+function recordCook(id){
+  S.hist.push({id, t: today()});
+  if(S.hist.length > 200) S.hist = S.hist.slice(-200);
+  save();
+  toast("记下了：今天做了「" + nameOf(id) + "」，7 天内不会再优先推荐它");
+  if(currentPlan) generatePlan();
+  if($("#tabHabit").classList.contains("on")) renderHabit();
+}
+function today(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function daysAgo(str){
+  return Math.floor((Date.now() - new Date(str + "T12:00:00").getTime()) / 86400000);
+}
+
+/* ---------- 弹窗 ---------- */
+function openModal(html){
+  $("#modal").innerHTML = `<button class="modal-close" id="mClose">✕</button>` + html;
+  $("#mask").classList.add("on");
+  $("#modal").scrollTop = 0;
+  $("#mClose").onclick = closeModal;
+}
+function closeModal(){ $("#mask").classList.remove("on"); }
+$("#mask").addEventListener("click", e=>{ if(e.target.id === "mask") closeModal(); });
+document.addEventListener("keydown", e=>{ if(e.key === "Escape") closeModal(); });
+
+/* ---------- AI 接入层 ---------- */
+const PROVIDERS = {
+  deepseek: {name:"DeepSeek（便宜、中文好）", base:"https://api.deepseek.com/v1", model:"deepseek-chat"},
+  ark: {name:"豆包 · 火山方舟", base:"https://ark.cn-beijing.volces.com/api/v3", model:"ep-你的接入点ID"},
+  qwen: {name:"通义千问（DashScope 兼容模式）", base:"https://dashscope.aliyuncs.com/compatible-mode/v1", model:"qwen-plus"},
+  custom: {name:"自定义（任意 OpenAI 兼容接口）", base:"", model:""}
+};
+function buildContext(){
+  const taste = ["清淡","微辣","中辣","重辣"][S.prefs.taste];
+  const selTxt = [...SEL].map(labelOf).join("、") || "还没选";
+  const recent = S.hist.slice(-4).reverse().map(h=>nameOf(h.id));
+  return `家里现有食材：${selTxt}；口味：${taste}；人数：${S.prefs.people} 人；可接受用时：${S.prefs.time>=99?"不限":S.prefs.time+" 分钟"}；忌口：${S.prefs.avoid.join("、")||"无"}；营养目标：${S.prefs.goals.join("、")||"无"}；最近做过：${recent.join("、")||"无"}。`;
+}
+async function callLLM(messages){
+  const {base, model, key} = S.ai;
+  if(!key) throw new Error("未配置 API Key");
+  const url = base.replace(/\/+$/, "") + "/chat/completions";
+  const res = await fetch(url, {
+    method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer " + key},
+    body: JSON.stringify({model, messages, temperature:0.7})
+  });
+  if(!res.ok){
+    const txt = await res.text();
+    throw new Error("HTTP " + res.status + " " + txt.slice(0,180));
+  }
+  const j = await res.json();
+  return (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || "（模型返回为空）";
+}
+function buildMessages(q){
+  const sys = "你是一位家常菜营养师兼厨艺教练，服务对象是完全不会做饭的新手。规则：1) 优先只用用户现有食材，缺料要说明可替换什么；2) 分条回答，动词开头，必须写清火候和时间；3) 不超过 250 字，不客套、不复述问题。";
+  const msgs = [
+    {role:"system", content:sys},
+    {role:"system", content:"【用户情况】" + buildContext()}
+  ];
+  chatHistory.slice(-6).forEach(m=>msgs.push({role:m.role === "assistant" ? "assistant" : "user", content:m.content}));
+  msgs.push({role:"user", content:q});
+  return msgs;
+}
+function updateAIStatus(){
+  const on = !!S.ai.key;
+  $("#aiStatus").innerHTML = `<span class="dot${on?" on":""}"></span>
+    <span>${on ? "已接入大模型 · " + S.ai.model + (S.ai.visionModel ? "（识图 " + S.ai.visionModel + "）" : "") : "本地知识库模式（未接入大模型）"}</span>
+    <span class="tagm">${on ? (S.ai.visionModel ? "文字问答与拍照识别都可用" : "文字问答可用；拍照识别还需填视觉模型") : "点右侧「模型设置」接入后解锁自由问答与拍照识别"}</span>`;
+}
+const TIPS = [
+  {k:["不柴","嫩","腌","浆","肉丝","肉片"], a:"肉不柴记住三步：①上浆——肉丝加 1 勺生抽、1 勺淀粉、1 勺清水抓到黏手，最后封 1 勺油，静置 10 分钟；②热锅冷油下锅，油温四成热（筷子插进去冒小泡）；③肉一变白就盛出，回锅只炒 20 秒。牛肉还要逆着纹路切。"},
+  {k:["去腥","腥","料酒","焯水"], a:"去腥分对象：鱼要刮净腹腔黑膜、抽掉脊骨血线；排骨、牛肉冷水下锅焯，水开后 3 分钟撇净浮沫；腥味重的（鸭翅、鸡脚）先用姜片和料酒焯；炒的时候沿锅边淋料酒，让酒汽带走腥味，别直接倒进菜里。"},
+  {k:["火候","大火","小火","爆炒","炒菜"], a:"家常菜火候口诀：炒青菜、炒肉丝、爆炒内脏用最大火，锅要烧到冒烟再下油，全程 1-2 分钟；炖肉、烧菜用最小火，汤面只冒小泡；蒸菜一定水开后再上锅；煎鱼煎豆腐用中火，定型了再翻。"},
+  {k:["油","少油","控油","腻"], a:"少油三个小动作：茄子切条撒盐腌 10 分钟挤水；豆腐用厨房纸吸干表面水再煎；五花肉先空锅干煸出油，把多余的油舀掉再炒。这样一盘菜能省一半油，也不腻。"},
+  {k:["盐","咸","控盐","减盐"], a:"控盐：用生抽、蚝油替代一部分盐（1 勺生抽≈1.5 克盐）；盐在起锅前放，咸味更明显、用量更少；汤类最后调味，因为收汁后会更咸；实在咸了，加一小块土豆同煮 5 分钟再捞出。"},
+  {k:["顺序","安排","先做","同时"], a:"一顿饭的顺序：先起汤或炖菜（不用管），利用空档洗切配菜；再炒需要预处理的（煎豆腐、煸肉）；最后炒青菜，出锅即上桌。三道菜控制在 40 分钟内，关键是“炖的先行、炒的压轴”。"},
+  {k:["蒸蛋","蜂窝","蛋羹"], a:"蒸蛋嫩滑四条：蛋液加 1.5 倍 40℃ 温水；过筛一遍去泡沫；碗上盖盘子或保鲜膜；水开后转中小火蒸 10 分钟。表面有蜂窝，基本是火太大或没盖住。"},
+  {k:["粘锅","糊锅","煎鱼","煎豆腐"], a:"不粘锅三步：锅烧到微微冒烟再倒油，油热后晃匀；食材表面一定擦干、拍薄粉；下锅后 2-3 分钟别动，晃锅能滑动再翻。铁锅和不粘锅都适用，鱼、豆腐、带鱼最吃这套。"},
+  {k:["剩菜","隔夜","保存"], a:"剩菜原则：绿叶菜不隔夜（亚硝酸盐高），当天吃完；肉类冷藏不超过 2 天，复热要彻底烧开；海鲜隔夜口感差，尽量当餐吃完；剩饭适合做蛋炒饭，比新饭更好炒。"},
+  {k:["新手","工具","买什么","准备"], a:"新手先备 5 样：一口不粘平底锅、一把锋利的菜刀、厨房纸（擦干食材是防粘关键）、一个厨房秤、一双长筷子。有这五样，80% 的家常菜都能做。"},
+  {k:["学","练习","入门","基本功"], a:"学做菜的顺序：第 1 周只练三样——炒蛋、炒青菜、煎豆腐，练“火候”和“翻动时机”；第 2 周练上浆滑炒（青椒肉丝）；第 3 周练炖（红烧肉、排骨汤）。每道菜做 3 次再换下一道，比一次学十道有用。"},
+  {k:["一人","一个人","独居","简单"], a:"一人食最省事的组合：一道蛋白质（蒸蛋/虾仁滑蛋/香煎带鱼）+ 一道绿叶菜，15-20 分钟搞定；汤最省事的是丝瓜蛋汤，10 分钟。做一次可以留一半第二天带饭。"}
+];
+function weekNarrative(){
+  if(!SEL.size) return "先勾几样食材，我按你现有的东西排一周菜单。";
+  const pool = scored().filter(d=>d.ok && d.matched.length >= 1).sort((a,b)=>b.score - a.score);
+  if(!pool.length) return "现有食材还排不出，先再加 2-3 样常见的（鸡蛋、豆腐、青菜）。";
+  const days = ["周一","周二","周三","周四","周五"];
+  const picked = [], ids = new Set();
+  for(const d of pool){
+    if(picked.length >= 5) break;
+    if(ids.has(d.id)) continue;
+    if(picked.length && picked[picked.length-1].cat === d.cat) continue;
+    picked.push(d); ids.add(d.id);
+  }
+  if(picked.length < 5){
+    for(const d of pool){
+      if(picked.length >= 5) break;
+      if(ids.has(d.id)) continue;
+      picked.push(d); ids.add(d.id);
+    }
+  }
+  return "按你现有的食材，周一到周五可以这样排：\n" +
+    picked.map((d,i)=>`${days[i]}　${d.name}（${d.time} 分钟，${d.main.map(labelOf).join("+")}）`).join("\n") +
+    "\n周六留一天清冰箱，把剩的边角料做个蛋炒饭；周日想换口味再去买新菜。每天尽量一荤一素，同一食材换做法就行。";
+}
+function localAnswer(q){
+  if(/一周|七天|不重样/.test(q)) return weekNarrative();
+  if(/吃什么|菜单|推荐|做什么|配菜|今晚|菜谱/.test(q)){
+    if(!SEL.size) return "你还没勾食材。先在左边选 2-3 样（比如鸡蛋 + 西红柿 + 小葱），我就能给你配一桌。";
+    if(!currentPlan) generatePlan();
+    return planNarrative();
+  }
+  for(const t of TIPS){
+    if(t.k.some(w=>q.includes(w))) return t.a;
+  }
+  return `本地知识库暂时没有「${q}」这一条。\n可以问：肉怎么炒才不柴 / 鱼怎么去腥 / 蒸蛋为什么有蜂窝 / 今晚 20 分钟能做什么。\n接入大模型后（右下「模型设置」），这里可以自由提问、也能按你的食材现场生成菜谱。`;
+}
+function planNarrative(){
+  if(!currentPlan || !currentPlan.length) return "先勾几样食材，我再给你配。";
+  const total = currentPlan.reduce((s,d)=>s+d.time,0);
+  const t = currentPlan.reduce((a,d)=>({p:a.p+d.protein,f:a.f+d.fat}),{p:0,f:0});
+  return `按你现有的 ${SEL.size} 样食材，今天建议这三道：\n` +
+    currentPlan.map((d,i)=>`${i+1}. ${d.name}（${d.time} 分钟）：${d.main.map(labelOf).join("+")}，${d.goals.length?d.goals.slice(0,2).join("、"):"家常口味"}。`).join("\n") +
+    `\n合计约 ${total} 分钟、蛋白质 ${t.p.toFixed(0)} 克。建议先做${currentPlan.slice().sort((a,b)=>b.time-a.time)[0].name}，炒菜最后出锅。`;
+}
+
+/* ---------- 对话 ---------- */
+const chatHistory = [];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function pushMsg(role, text){
+  chatHistory.push({role, content:text});
+  const div = document.createElement("div");
+  div.className = "msg " + (role === "user" ? "me" : "bot");
+  div.innerHTML = `<span class="who">${role === "user" ? "我" : "智能菜单"}</span>${esc(text)}`;
+  $("#chatLog").appendChild(div);
+  $("#chatLog").scrollTop = $("#chatLog").scrollHeight;
+}
+function typingOn(){
+  const div = document.createElement("div");
+  div.className = "msg bot"; div.id = "typing";
+  div.innerHTML = `<span class="who">智能菜单</span><span class="typing"><i></i><i></i><i></i></span>`;
+  $("#chatLog").appendChild(div); $("#chatLog").scrollTop = $("#chatLog").scrollHeight;
+  return div;
+}
+async function sendChat(){
+  const q = $("#chatInput").value.trim();
+  if(!q) return;
+  $("#chatInput").value = "";
+  pushMsg("user", q);
+  const td = typingOn();
+  const btn = $("#chatSend"); btn.disabled = true;
+  try{
+    let ans;
+    if(S.ai.key){
+      ans = await callLLM(buildMessages(q));
+    }else{
+      await new Promise(r=>setTimeout(r, 350));
+      ans = localAnswer(q);
+    }
+    td.remove(); pushMsg("assistant", ans);
+  }catch(err){
+    td.remove();
+    pushMsg("assistant", "调用模型失败：" + err.message + "\n排查顺序：① API 地址是否以 /v1 结尾；② 模型名是否填对（方舟要填 ep- 开头的接入点 ID）；③ Key 是否有效；④ 浏览器是否拦截跨域——正式使用建议走后端代理（见「怎么接入」）。");
+  }
+  btn.disabled = false;
+}
+
+/* ---------- AI 优化菜单 ---------- */
+async function aiPlan(){
+  if(!SEL.size){ toast("先勾几样食材，AI 才知道你家里有什么"); return; }
+  if(!S.ai.key){
+    generatePlan(); switchTab("plan");
+    toast("还没配置模型，先用本地引擎给你配了一套");
+    return;
+  }
+  const btn = $("#aiPlanBtn"); btn.disabled = true;
+  const td = typingOn();
+  try{
+    const prompt = `情况：${buildContext()}\n请给出今天的一桌菜（2-3 道），要求：只用现有食材（可假设有盐、油、生抽、淀粉），荤素搭配，总用时不超过 ${S.prefs.time>=99?60:S.prefs.time} 分钟，避开最近做过的菜。\n只输出 JSON，不要 markdown、不要解释：{"title":"","dishes":[{"name":"","role":"主菜/素菜/汤","why":"为什么推荐，25 字内","time":10,"steps":["",""]}],"nutrition":"一句营养提醒"}`;
+    const txt = await callLLM([
+      {role:"system", content:"你是家常菜营养师，只根据用户现有食材设计菜单，输出严格 JSON。"},
+      {role:"user", content:prompt}
+    ]);
+    td.remove();
+    const m = txt.match(/\{[\s\S]*\}/);
+    if(!m){ pushMsg("assistant", txt); switchTab("ai"); return; }
+    const o = JSON.parse(m[0]);
+    renderAIPlan(o);
+  }catch(err){
+    td.remove();
+    pushMsg("assistant", "AI 生成失败：" + err.message);
+    switchTab("ai");
+  }
+  btn.disabled = false;
+}
+function renderAIPlan(o){
+  currentPlan = null;
+  $("#planTime").textContent = "AI 生成 · " + S.prefs.people + " 人份";
+  $("#planTitle").textContent = o.title || "AI 配的一桌菜";
+  $("#planBox").innerHTML = (o.dishes || []).map(d=>`
+    <div class="meal" style="cursor:default">
+      <div class="thumb t-veg"><span class="meal-role">${esc(d.role || "菜")}</span><div class="em">🍽️</div><div class="tl">AI 建议</div></div>
+      <div class="meal-body">
+        <div class="meal-name">${esc(d.name || "")}</div>
+        <div class="meal-meta">约 ${esc(d.time || "—")} 分钟</div>
+        <div class="meal-why">${esc(d.why || "")}</div>
+      </div>
+    </div>`).join("");
+  $("#planWhy").style.display = "block";
+  $("#planWhy").innerHTML = `<h4>AI 给的做法要点</h4><ul>` +
+    (o.dishes || []).map(d=>`<li><b>${esc(d.name)}</b>：${(d.steps || []).map(esc).join(" → ")}</li>`).join("") +
+    `</ul>` + (o.nutrition ? `<div class="note" style="margin-top:8px">${esc(o.nutrition)}</div>` : "") +
+    `<div class="note" style="margin-top:6px;color:#9aa69f">由 ${esc(S.ai.model)} 生成，仅作参考，用量与火候以实际为准。</div>`;
+  $("#planNutri").style.display = "none";
+  $("#unusedBox").style.display = "none";
+  switchTab("plan");
+  toast("AI 已生成新方案");
+}
+
+/* ---------- 习惯档案 ---------- */
+function topDishes(n){
+  const c = {};
+  S.hist.forEach(h=>c[h.id] = (c[h.id] || 0) + 1);
+  return Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([id, n])=>({name:nameOf(+id), n}));
+}
+function tasteCounts(){
+  const base = S.tasteCount || [0,0,0,0];
+  return ["清淡","微辣","中辣","重辣"].map((n,i)=>({n, c: base[i] || 0}));
+}
+function renderHabit(){
+  const total = S.hist.length;
+  const week = S.hist.filter(h=>daysAgo(h.t) <= 6).length;
+  const uniq = new Set(S.hist.map(h=>h.id)).size;
+  const clicks = Object.values(S.vclick).reduce((a,b)=>a+b, 0);
+  const views = Object.values(S.vview).reduce((a,b)=>a+b, 0);
+  const avgTime = (()=>{
+    if(!S.hist.length) return 0;
+    const arr = S.hist.map(h=>RECIPES.find(d=>d.id===h.id)).filter(Boolean).map(d=>d.time);
+    return arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : 0;
+  })();
+  const top = topDishes(3);
+  const maxN = top.length ? top[0].n : 1;
+  const vid = Object.keys(S.vclick).map(id=>({
+    id:+id, name:nameOf(+id), click:S.vclick[id] || 0, view:S.vview[id] || 0,
+    ctr: Math.round((S.vclick[id] || 0) / Math.max(1, S.vview[id] || 1) * 100)
+  })).filter(x=>x.click > 0).sort((a,b)=>b.click - a.click).slice(0,5);
+  const maxClick = vid.length ? vid[0].click : 1;
+  const recent = [...S.hist].reverse().slice(0,8);
+
+  $("#habitBox").innerHTML = `
+    <div class="habit-grid">
+      <div class="hstat"><div class="k">累计做过</div><div class="v">${total}<small>道</small></div><div class="sub">近 7 天 ${week} 道</div></div>
+      <div class="hstat"><div class="k">做过的菜</div><div class="v">${uniq}<small>种</small></div><div class="sub">菜品库共 ${RECIPES.length} 道</div></div>
+      <div class="hstat"><div class="k">视频点击</div><div class="v">${clicks}<small>次</small></div><div class="sub">曝光 ${views} 次</div></div>
+      <div class="hstat"><div class="k">平均一道菜</div><div class="v">${avgTime}<small>分钟</small></div><div class="sub">按做过的菜估算</div></div>
+    </div>
+    <div class="hsec">
+      <h4>AI 记住的习惯 <button class="btn ghost small" id="genProfile">${S.ai.key?"让 AI 总结":"生成本地画像"}</button></h4>
+      <div class="profile-box">${S.profile ? esc(S.profile) : `<span style="color:#8d9a93">还没有画像。点右上按钮，我会把口味、常做的菜、做饭频率整理成一份档案，下次推荐时直接用上。</span>`}</div>
+    </div>
+    <div class="hsec">
+      <h4>最常做的菜</h4>
+      ${top.length ? `<div class="rank">${top.map((d,i)=>`<div class="rank-row"><span class="no">0${i+1}</span><span class="rname">${d.name}</span><span class="rbar"><i style="width:${Math.round(d.n/maxN*100)}%"></i></span><span class="rv">${d.n} 次</span></div>`).join("")}</div>` : `<div class="empty-line">还没有记录。在菜品详情里点「我今天做了这道」就会记进来。</div>`}
+    </div>
+    <div class="hsec">
+      <h4>口味偏好</h4>
+      <div class="nutri-mini"><span style="background:#eaf5ef;color:#2f7d5f;font-weight:700">当前：${["清淡","微辣","中辣","重辣"][S.prefs.taste]}</span>${tasteCounts().map(t=>`<span>${t.n} <b>${t.c}</b> 次</span>`).join("")}</div>
+      ${S.prefs.avoid.length ? `<div class="note">忌口：${S.prefs.avoid.join("、")}</div>` : ""}
+    </div>
+    <div class="hsec">
+      <h4>视频点击率（用于热度排序）</h4>
+      ${vid.length ? `<div class="rank">${vid.map((v,i)=>`<div class="rank-row"><span class="no">0${i+1}</span><span class="rname">${v.name}</span><span class="rbar"><i style="width:${Math.round(v.click/maxClick*100)}%"></i></span><span class="rv">${v.click} 次 / ${v.ctr}%</span></div>`).join("")}</div>` : `<div class="empty-line">还没有视频点击。打开任一道菜的「视频步骤」会记录点击与曝光。</div>`}
+    </div>
+    <div class="hsec">
+      <h4>最近记录</h4>
+      <div class="hist-list">${recent.length ? recent.map(h=>`<div class="hist-item"><span>🍽</span><span>${nameOf(h.id)}</span><span class="when">${h.t}</span></div>`).join("") : `<div class="empty-line">暂无</div>`}</div>
+    </div>
+    <div class="ai-actions">
+      <button class="btn ghost small" id="expData">导出我的档案</button>
+      <button class="btn ghost small" id="clrHist">清空记录</button>
+    </div>`;
+
+  $("#expData").onclick = ()=>{
+    const data = {prefs:S.prefs, hist:S.hist, fav:S.fav, vclick:S.vclick, vview:S.vview, profile:S.profile};
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "我的饮食习惯档案.json"; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+    toast("已导出 JSON 档案");
+  };
+  $("#clrHist").onclick = ()=>{
+    if(!confirm("清空做菜记录、视频点击和画像？偏好设置会保留。")) return;
+    S.hist = []; S.vclick = {}; S.vview = {}; S.profile = "";
+    save(); renderHabit(); toast("记录已清空");
+  };
+  $("#genProfile").onclick = aiHabit;
+}
+function localProfile(){
+  const top = topDishes(2).map(d=>d.name);
+  const taste = ["清淡","微辣","中辣","重辣"][S.prefs.taste];
+  const week = S.hist.filter(h=>daysAgo(h.t) <= 6).length;
+  const avg = (()=>{
+    const arr = S.hist.map(h=>RECIPES.find(d=>d.id===h.id)).filter(Boolean).map(d=>d.time);
+    return arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : 0;
+  })();
+  const fish = S.hist.map(h=>RECIPES.find(d=>d.id===h.id)).filter(Boolean).filter(d=>d.flags.includes("海鲜")||d.flags.includes("内脏")).length;
+  const sugg = week >= 4 ? "这周做得挺勤，注意荤素交替，别连着两天重辣。" : "可以把菜品库里没做过的一半慢慢试完，先从用时 15 分钟内的开始。";
+  return `口味偏${taste}，常做${top.join("、") || "还没记录"}；平均一道菜 ${avg || "—"} 分钟；近 7 天做了 ${week} 道；${S.prefs.avoid.length?"忌口 "+S.prefs.avoid.join("、"):"没有设置忌口"}${fish>=2?"；最近水产/内脏类偏多，建议穿插绿叶菜":"；荤素比例还算平衡"}。建议：${sugg}`;
+}
+async function aiHabit(){
+  if(!S.ai.key){ S.profile = localProfile(); save(); renderHabit(); toast("已生成本地画像（接入模型后会更细）"); return; }
+  const btn = $("#genProfile"); if(btn) btn.disabled = true;
+  try{
+    const data = {
+      taste: ["清淡","微辣","中辣","重辣"][S.prefs.taste],
+      avoid: S.prefs.avoid, goals: S.prefs.goals, people: S.prefs.people,
+      top: topDishes(5), total: S.hist.length,
+      week: S.hist.filter(h=>daysAgo(h.t) <= 6).length,
+      recent: S.hist.slice(-6).map(h=>nameOf(h.id))
+    };
+    const ans = await callLLM([
+      {role:"system", content:"你是饮食行为分析师，只根据数据写结论，不编造。"},
+      {role:"user", content:`根据这些做饭数据，用 100 字内总结我的饮食习惯，再给 2 条具体建议：${JSON.stringify(data)}`}
+    ]);
+    S.profile = ans; save(); renderHabit(); toast("画像已更新");
+  }catch(e){
+    S.profile = localProfile(); save(); renderHabit();
+    toast("调用失败，已改用本地画像：" + e.message.slice(0,40));
+  }
+}
+
+/* ---------- 拍照识别食材 ---------- */
+const SHOT_PROMPT = `你是厨房食材识别助手。看这张照片，列出能明确辨认的食材。
+只输出 JSON，不要解释、不要 markdown。格式：
+{"items":[{"name":"鸡蛋","count":6,"confidence":0.9}],"unclear":["白色袋装物"]}
+规则：name 用中文常见叫法（鸡蛋、西红柿、嫩豆腐、五花肉、小葱、黄心土豆、薄皮椒）；只写确实看得见的；看不清或不确定的放 unclear，不要猜；count 数不清就写 null；confidence 取 0 到 1。`;
+let shotPhoto = null, shotRows = [];
+
+function shotCompress(file, maxSide){
+  return new Promise((resolve, reject)=>{
+    const img = new Image(), u = URL.createObjectURL(file);
+    img.onload = ()=>{
+      const sc = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(img.width * sc); cv.height = Math.round(img.height * sc);
+      cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(u);
+      resolve(cv.toDataURL("image/jpeg", 0.82));
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(u); reject(new Error("这张图片读不出来，换一张试试")); };
+    img.src = u;
+  });
+}
+async function shotRecognize(dataUrl){
+  if(!(S.ai.key || "").trim()) throw new Error("还没配置 API Key，先点「模型设置」填一个支持看图的模型");
+  const model = (S.ai.visionModel || "").trim() || S.ai.model;
+  if(!model) throw new Error("还没填模型名");
+  const url = S.ai.base.replace(/\/+$/, "") + "/chat/completions";
+  const res = await fetch(url, {
+    method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer " + S.ai.key},
+    body: JSON.stringify({
+      model, temperature:0,
+      messages:[
+        {role:"system", content:"你只输出 JSON，不输出任何解释。"},
+        {role:"user", content:[
+          {type:"image_url", image_url:{url:dataUrl}},
+          {type:"text", text:SHOT_PROMPT}
+        ]}
+      ]
+    })
+  });
+  if(!res.ok){
+    const txt = await res.text();
+    throw new Error("HTTP " + res.status + "（" + txt.slice(0,120) + "）");
+  }
+  const j = await res.json();
+  const txt = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || "";
+  const a = txt.indexOf("{"), b = txt.lastIndexOf("}");
+  if(a < 0 || b < 0) throw new Error("模型没按 JSON 返回，换一个能读图的模型再试");
+  const o = JSON.parse(txt.slice(a, b + 1));
+  return {items: Array.isArray(o.items) ? o.items : [], unclear: Array.isArray(o.unclear) ? o.unclear : []};
+}
+const SHOT_KEYS = Object.keys(ING_MAP).sort((a,b)=>b.length-a.length);
+function shotMapName(name){
+  const raw = String(name || "").trim();
+  if(!raw) return null;
+  const byAlias = resolveIng(raw);
+  if(byAlias) return byAlias;
+  const t = raw.replace(/[\s（）()]/g, "");
+  for(const k of SHOT_KEYS){ if(t.includes(k) || k.includes(t)) return k; }
+  return null;
+}
+function shotRenderList(res){
+  shotRows = res.items.map(it=>{
+    const key = shotMapName(it.name);
+    return {
+      key,
+      name: String(it.name || "").trim() || "未命名",
+      count: (it.count === null || it.count === undefined) ? null : it.count,
+      conf: Math.max(0, Math.min(1, +it.confidence || 0)),
+      on: !!key && !SEL.has(key)
+    };
+  });
+  shotRows.sort((a,b)=>(b.key ? 1 : 0) - (a.key ? 1 : 0) || b.conf - a.conf);
+  const unclear = res.unclear || [];
+  const rows = shotRows.map((r,i)=>`
+    <label class="shot-item${r.on ? "" : " off"}">
+      <input type="checkbox" data-i="${i}" ${r.on ? "checked" : ""} ${r.key ? "" : "disabled"}>
+      <span class="nm">${esc(r.key ? labelOf(r.key) : r.name)}</span>
+      ${r.key ? `<span class="mt">${r.count ? "数量约 " + r.count : "已收录"} · 把握 ${Math.round(r.conf * 100)}%</span>`
+              : `<span class="bad">未收录，可手动输入</span>`}
+    </label>`).join("");
+  $("#shotList").innerHTML = rows || `<div class="note">这一张里没认出食材，换一张更清楚、光线更亮的照片。</div>`;
+  if(unclear.length){
+    $("#shotList").innerHTML += `<div class="note">看不清的：${unclear.map(esc).join("、")}（没有计入）</div>`;
+  }
+  $("#shotList").querySelectorAll("input").forEach(inp=>{
+    inp.onchange = ()=>{ shotRows[+inp.dataset.i].on = inp.checked; inp.closest(".shot-item").classList.toggle("off", !inp.checked); shotUpdateFoot(); };
+  });
+  shotUpdateFoot();
+}
+function shotUpdateFoot(){
+  const n = shotRows.filter(r=>r.on).length;
+  const matched = shotRows.filter(r=>r.key).length;
+  $("#shotAdd").disabled = n === 0;
+  $("#shotAdd").textContent = n ? `加入 ${n} 样食材` : "加入食材";
+  $("#shotHint").textContent = matched
+    ? `识别到 ${matched} 样库内食材，勾选后才会加入；不对的取消勾选即可。`
+    : "没有匹配到食材库，换个角度重拍，或直接手动输入。";
+}
+function openShot(){
+  shotPhoto = null; shotRows = [];
+  openModal(`<div style="padding:20px 22px 22px">
+    <h2 style="font-size:18px;font-weight:800">📷 拍照识别食材</h2>
+    <p class="small-note" style="margin-top:6px">拍冰箱、台面或购物袋。识别结果是候选清单，由你勾选确认后才会计入。</p>
+    <div class="shot-entry2">
+      <button class="btn primary small" id="shotCamBtn">拍一张</button>
+      <button class="btn ghost small" id="shotFileBtn">从相册选</button>
+      <input type="file" id="shotCamInput" accept="image/*" capture="environment" hidden>
+      <input type="file" id="shotFileInput" accept="image/*" hidden>
+    </div>
+    <div id="shotPreview" class="shot-preview">还没有照片</div>
+    <div id="shotList" class="shot-list">${S.ai.key ? "" : `<div class="note">拍照识别需要接入一个能读图的模型（如豆包方舟、通义 qwen-vl、GLM-4V）。不填 Key 也能用左边的勾选和手动输入。</div>`}</div>
+    <div class="shot-foot">
+      <span class="hint" id="shotHint">${S.ai.key ? "选一张照片，我会列出看到的食材。" : "先在「模型设置」里填视觉模型与 Key。"}</span>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn ghost small" id="shotSettings">模型设置</button>
+        <button class="btn ghost small" id="shotCancel">关闭</button>
+        <button class="btn primary small" id="shotAdd" disabled>加入食材</button>
+      </div>
+    </div>
+  </div>`);
+
+  const pick = async file=>{
+    if(!file) return;
+    try{
+      shotPhoto = await shotCompress(file, 1024);
+      $("#shotPreview").innerHTML = `<img src="${shotPhoto}" alt="待识别的照片">`;
+      $("#shotHint").textContent = "识别中…";
+      $("#shotAdd").disabled = true;
+      $("#shotList").innerHTML = `<div class="note">正在看这张照片，请稍等（大约 5-15 秒）。</div>`;
+      const res = await shotRecognize(shotPhoto);
+      shotRenderList(res);
+      $("#shotHint").textContent = "识别完成，确认后加入。";
+    }catch(e){
+      shotPhoto = null;
+      $("#shotList").innerHTML = `<div class="note" style="color:#c9483f">识别失败：${esc(e.message)}</div>`;
+      $("#shotHint").textContent = "可以重拍一张，或改用左边勾选 / 手动输入。";
+    }
+  };
+
+  $("#shotCamBtn").onclick = ()=>$("#shotCamInput").click();
+  $("#shotFileBtn").onclick = ()=>$("#shotFileInput").click();
+  $("#shotCamInput").onchange = e=>pick(e.target.files[0]);
+  $("#shotFileInput").onchange = e=>pick(e.target.files[0]);
+  $("#shotCancel").onclick = closeModal;
+  $("#shotSettings").onclick = ()=>{ closeModal(); openSettings(); };
+  $("#shotAdd").onclick = ()=>{
+    const keys = shotRows.filter(r=>r.on && r.key).map(r=>r.key);
+    if(!keys.length){ toast("没有可加入的食材"); return; }
+    keys.forEach(k=>SEL.add(k));
+    afterSelChange();
+    closeModal();
+    toast("已加入 " + keys.length + " 样食材，可继续手动增减");
+    switchTab("plan");
+  };
+}
+
+/* ---------- 设置 / 接入说明 ---------- */
+function openSettings(){
+  const p = S.ai.provider || "deepseek";
+  openModal(`
+    <div style="padding:24px 24px 20px">
+      <h2 style="font-size:19px;font-weight:800;margin-bottom:4px">接入大模型</h2>
+      <p class="small-note">填好下面三项，聊天、菜单生成、习惯画像都会走你的模型；不填也能用，走本地规则引擎。</p>
+      <div class="form" style="margin-top:14px">
+        <div><label>服务商</label>
+          <select id="fProvider">${Object.entries(PROVIDERS).map(([k,v])=>`<option value="${k}"${k===p?" selected":""}>${v.name}</option>`).join("")}</select>
+        </div>
+        <div><label>接口地址（Base URL）</label><input id="fBase" value="${esc(S.ai.base)}" placeholder="https://api.deepseek.com/v1"></div>
+        <div class="two">
+          <div><label>模型名</label><input id="fModel" value="${esc(S.ai.model)}" placeholder="deepseek-chat"></div>
+          <div><label>API Key</label><input id="fKey" type="password" value="${esc(S.ai.key)}" placeholder="sk-..."></div>
+        </div>
+        <div><label>视觉模型名（拍照识别用，可留空）</label><input id="fVision" value="${esc(S.ai.visionModel || "")}" placeholder="如 qwen-vl-plus / glm-4v / 方舟视觉接入点 ID"></div>
+        <div class="small-note">拍照识别必须用一个能读图的模型：留空则沿用上面的模型（文本模型读不了图）。DeepSeek 文本模型不支持图片，想用拍照就加一个通义 qwen-vl、智谱 GLM-4V 或方舟视觉接入点。</div>
+        <div class="small-note">Key 只保存在这台电脑的浏览器里（localStorage），不会发到别的地方。课堂演示可以用自己的 key，正式上线务必走后端代理。</div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button class="btn primary small" id="fSave">保存</button>
+          <button class="btn ghost small" id="fTest">测试连接</button>
+          <button class="btn ghost small" id="fClear">清除 Key</button>
+        </div>
+      </div>
+    </div>`);
+  $("#fProvider").onchange = e=>{
+    const v = PROVIDERS[e.target.value];
+    if(v.base) $("#fBase").value = v.base;
+    if(v.model) $("#fModel").value = v.model;
+    S.ai.provider = e.target.value;
+  };
+  $("#fSave").onclick = ()=>{
+    S.ai.base = $("#fBase").value.trim();
+    S.ai.model = $("#fModel").value.trim();
+    S.ai.visionModel = $("#fVision").value.trim();
+    S.ai.key = $("#fKey").value.trim();
+    S.ai.provider = $("#fProvider").value;
+    save(); updateAIStatus(); closeModal();
+    toast(S.ai.key ? "已保存，当前模型：" + S.ai.model : "已保存（未填 Key，仍用本地模式）");
+  };
+  $("#fTest").onclick = async ()=>{
+    const base = $("#fBase").value.trim(), model = $("#fModel").value.trim(), key = $("#fKey").value.trim();
+    if(!key){ toast("先填 API Key"); return; }
+    $("#fTest").textContent = "测试中…";
+    try{
+      const res = await fetch(base.replace(/\/+$/, "") + "/chat/completions", {
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer " + key},
+        body: JSON.stringify({model, messages:[{role:"user", content:"只回复四个字：连接成功"}], temperature:0})
+      });
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      const j = await res.json();
+      toast("连接成功：" + ((j.choices && j.choices[0] && j.choices[0].message.content) || "模型已响应"));
+    }catch(e){
+      toast("连接失败：" + e.message + "（可能是跨域或地址/模型名有误）");
+    }
+    $("#fTest").textContent = "测试连接";
+  };
+  $("#fClear").onclick = ()=>{ S.ai.key = ""; save(); $("#fKey").value = ""; updateAIStatus(); toast("Key 已清除"); };
+}
+function openGuide(){
+  openModal(`
+    <div class="guide" style="padding:24px">
+      <h2 style="font-size:19px;font-weight:800">怎么接进大模型</h2>
+      <p class="small-note" style="margin-top:4px">这一页是给「做产品」的人看的：三种接法的取舍、实际请求格式、以及本页用的 Prompt。</p>
+
+      <h3>一、三种接法，按场景选</h3>
+      <div class="prev-list">
+        <div class="prev-row"><span class="pt">前端直连</span><span>浏览器 fetch 直接调厂商接口。本页就是这种，适合课程演示和自用；缺点是 Key 暴露在前端，且部分厂商会拦截 file:// 的跨域请求。</span></div>
+        <div class="prev-row"><span class="pt">后端代理</span><span>推荐。前端只调自己的 /api/chat，由服务端保管 Key、拼 Prompt、做限流与审计，顺便解决跨域。</span></div>
+        <div class="prev-row"><span class="pt">私有化</span><span>学校、企业内部部署（vLLM / Ollama 等），接口同样兼容 OpenAI 格式，改 Base URL 即可。</span></div>
+      </div>
+
+      <h3>二、本页三步接入</h3>
+      <ol>
+        <li>点「模型设置」，选服务商；Base URL 与模型名会自动填好（豆包方舟要填 <code>ep-</code> 开头的接入点 ID）。</li>
+        <li>填 API Key，点「测试连接」，返回「连接成功」即通。</li>
+        <li>保存后：AI 厨房可自由问答，另有「AI 优化今日菜单」「AI 读我的习惯」两个结构化调用。</li>
+      </ol>
+      <div class="callout">浏览器直连若报跨域（CORS），不是代码错，是服务商策略。换后端代理，或改用支持 CORS 的网关。</div>
+
+      <h3>三、请求格式（OpenAI 兼容）</h3>
+      <pre>POST {base}/chat/completions
+Authorization: Bearer sk-xxx
+Content-Type: application/json
+
+{
+  "model": "deepseek-chat",
+  "temperature": 0.7,
+  "messages": [
+    {"role":"system","content":"你是家常菜营养师兼厨艺教练..."},
+    {"role":"user","content":"家里有鸡蛋、西红柿、小葱，2 人吃，20 分钟"}
+  ]
+}</pre>
+
+      <h3>四、拍照识别食材的链路</h3>
+      <ol>
+        <li>前端 <code>&lt;input capture&gt;</code> 拍照，canvas 压到 1024px、JPEG 0.82，转 base64。</li>
+        <li>POST 到 <code>{base}/chat/completions</code>，content 里同时放 <code>image_url</code> 和文字要求，只让模型返回 JSON。</li>
+        <li>解析 <code>items</code> 后先走别名映射（三线肉→五花肉、瓢儿白→上海青、番茄→西红柿），映射不到的标「未收录」。</li>
+        <li>展示成勾选清单，用户确认后才写入已选食材。不做「拍完直接出菜谱」。</li>
+      </ol>
+      <div class="callout">换模型只改「视觉模型名」：qwen-vl-plus、glm-4v、方舟视觉接入点都行，接口格式一样。识别率大概七到八成，所以必须留人工确认这一步。</div>
+
+      <h3>五、菜单生成用的 Prompt（可直接抄）</h3>
+      <pre>情况：家里现有食材：{{ingredients}}；口味：{{taste}}；人数：{{people}}；
+可接受用时：{{minutes}}；忌口：{{avoid}}；最近做过：{{history}}。
+请给出今天的一桌菜（2-3 道），只用现有食材（可假设有盐、油、生抽、淀粉），
+荤素搭配，避开最近做过的菜。
+只输出 JSON：
+{"title":"","dishes":[{"name":"","role":"","why":"","time":10,"steps":["",""]}],
+ "nutrition":""}</pre>
+
+      <h3>六、厨艺教练的人格设定</h3>
+      <pre>你是家常菜营养师兼厨艺教练，服务对象是完全不会做饭的新手。
+规则：1) 优先只用用户现有食材，缺料说明可替换什么；
+2) 分条回答，动词开头，写清火候与时间；
+3) 不超过 250 字，不客套、不复述问题。</pre>
+
+      <h3>七、落地时还要补的三件事</h3>
+      <ul>
+        <li><b>结构化输出校验</b>：模型返回的 JSON 要兜底解析，失败就降级成本地规则方案（本页已实现）。</li>
+        <li><b>菜品库与模型分工</b>：库里有的菜走确定性数据（用量、步骤稳定）；库里没有的食材才让模型生成。</li>
+        <li><b>成本与限流</b>：一次菜单生成约 500-800 token，按用户点击触发，不做自动轮询；服务端加每日调用上限。</li>
+      </ul>
+    </div>`);
+}
+
+/* ---------- Tab ---------- */
+function switchTab(name){
+  $$("#tabs button").forEach(b=>b.classList.toggle("on", b.dataset.tab === name));
+  $$(".tab-body").forEach(b=>b.classList.remove("on"));
+  const box = {plan:"#tabPlan", dish:"#tabDish", ai:"#tabAi", habit:"#tabHabit"}[name];
+  if(box) $(box).classList.add("on");
+  if(name === "dish") renderDishes();
+  if(name === "habit") renderHabit();
+  if(name === "ai") setTimeout(()=>$("#chatInput").focus(), 100);
+}
+
+/* ---------- 初始化 ---------- */
+function init(){
+  $("#statIng").textContent = Object.keys(ING_MAP).length;
+  $("#statDish").textContent = RECIPES.length;
+  refreshDishCount();
+  renderGroups();
+  renderSelected();
+  syncPrefs();
+  bindPrefs();
+  renderDishes();
+  renderPlanEmptyHint();
+  updateAIStatus();
+  renderHabit();
+
+  $$("#tabs button").forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+
+  $("#ingSearch").oninput = renderGroups;
+  $("#ingGroups").addEventListener("click", e=>{
+    const chip = e.target.closest(".chip");
+    if(chip){
+      const k = chip.dataset.k;
+      if(SEL.has(k)) SEL.delete(k); else SEL.add(k);
+      afterSelChange();
+      return;
+    }
+    const head = e.target.closest(".group-head");
+    if(head) head.parentElement.classList.toggle("closed");
+  });
+  $("#ingGroups").addEventListener("dblclick", e=>{ /* 占位：双击无动作 */ });
+
+  $("#clearSel").onclick = ()=>{ SEL.clear(); afterSelChange(); toast("已清空已选食材"); };
+
+  function addManual(){
+    const raw = $("#manualInput").value.trim();
+    if(!raw) return;
+    const toks = raw.split(/[,，、;；\s]+/).filter(Boolean);
+    const unknown = [];
+    toks.forEach(t=>{
+      const k = resolveIng(t);
+      if(k) SEL.add(k); else { SEL.add(t); unknown.push(t); }
+    });
+    $("#manualInput").value = "";
+    afterSelChange();
+    if(unknown.length) toast("已加入，但食材库里没有：" + unknown.join("、") + "（可让 AI 想做法）");
+    else toast("已加入 " + toks.length + " 样食材");
+  }
+  $("#manualAdd").onclick = addManual;
+  $("#manualInput").addEventListener("keydown", e=>{ if(e.key === "Enter") addManual(); });
+
+  $("#genPlan").onclick = ()=>{ generatePlan(); switchTab("plan"); };
+  $("#regenPlan").onclick = ()=>{
+    if(!SEL.size){ toast("先勾几样食材"); return; }
+    generatePlan(true); switchTab("plan"); toast("换了一套搭配");
+  };
+
+  $("#sortSel").onchange = e=>{ sortMode = e.target.value; renderDishes(); };
+  $("#dishSearch").oninput = renderDishes;
+  $("#onlyRel").classList.toggle("on", onlyRel);
+  $("#onlyRel").onclick = ()=>{ onlyRel = !onlyRel; $("#onlyRel").classList.toggle("on", onlyRel); renderDishes(); };
+  $("#catFilter").addEventListener("click", e=>{ const b = e.target.closest(".fbtn"); if(b){ catFilter = b.dataset.c; renderDishes(); } });
+
+  $("#chatSend").onclick = sendChat;
+  $("#chatInput").addEventListener("keydown", e=>{ if(e.key === "Enter") sendChat(); });
+  $("#aiPlanBtn").onclick = aiPlan;
+  $("#aiHabitBtn").onclick = aiHabit;
+  $("#openSettings").onclick = openSettings;
+  $("#openGuide").onclick = openGuide;
+  $("#openShot").onclick = openShot;
+
+  const quick = [
+    "今晚 20 分钟能做什么？",
+    "肉怎么炒才不柴？",
+    "蒸蛋为什么有蜂窝？",
+    "给我一周不重样菜单",
+    "新手先练哪几道菜？",
+    "鱼怎么去腥？"
+  ];
+  $("#quickAsk").innerHTML = quick.map(q=>`<button>${q}</button>`).join("");
+  $$("#quickAsk button").forEach(b=>b.onclick=()=>{ $("#chatInput").value = b.textContent; sendChat(); });
+
+  pushMsg("assistant",
+    `你好，我是你的家常菜助手 👋\n` +
+    `用法只有三步：勾食材 → 点「生成今天的菜谱」→ 点开某道菜看步骤和视频。\n` +
+    `现在是 ${S.prefs.people} 人份、口味「${["清淡","微辣","中辣","重辣"][S.prefs.taste]}」` +
+    `${SEL.size ? "，你已选了 " + SEL.size + " 样食材" : "，还没选食材"}。\n` +
+    `不会做饭也没关系，我的步骤会写清“大火 30 秒、肉变白就盛出”这种程度。`
+  );
+}
+init();
+
+
+</script>
+</body>
+</html>
